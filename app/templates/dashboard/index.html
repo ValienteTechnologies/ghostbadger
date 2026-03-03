@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Ghostbadger{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+  <header class="dashboard__header">
+    <h1>Ghostbadger</h1>
+    <a class="btn btn--secondary btn--sm" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
+  </header>
+  <main class="dashboard__main">
+    <p>Connected. Build your features here.</p>
+  </main>
+</div>
+{% endblock %}
