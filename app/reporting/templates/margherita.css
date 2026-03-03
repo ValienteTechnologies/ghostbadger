@@ -1,0 +1,735 @@
+/*
+This file is used as a common base style for markdown text rendering.
+It is included in the global base styles in PDF rendering and in the markdown preview in the frontend.
+*/
+
+/* Component base styles for component layout */
+table {
+    width: 100%;
+    caption-side: bottom;
+  }
+  table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+  }
+  th {
+    font-weight: bold;
+  }
+  td {
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+  th, td {
+    padding: 0.3em;
+  }
+  tr {
+    break-inside: avoid;
+  }
+  thead {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+  caption {
+    font-weight: bold;
+    break-inside: avoid;
+    break-before: avoid;
+  }
+  table img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  /* Images and figures */
+  figure {
+    break-inside: avoid;
+    text-align: center;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  figcaption {
+    font-weight: bold;
+    break-inside: avoid;
+    break-before: avoid;
+  }
+  img {
+    max-width: 100%;
+  }
+  
+  /* Code blocks */
+  pre code {
+    display: block;
+  }
+  /* Allow line wrapping in code blocks: prevent code from overflowing page */
+  pre {
+    white-space: pre-wrap;
+  }
+  
+  /* Markdown text styles */
+  h1 { font-size: 2rem;  }
+  h2 { font-size: 1.6rem; }
+  h3 { font-size: 1.4rem; }
+  h4 { font-size: 1.25rem; }
+  h5 { font-size: 1.1rem; }
+  h6 { font-size: 1rem; }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    margin: 1em 0 0.4em 0;
+  }
+  
+  p, ul, ol, blockquote, table, .code-block, .markdown, .language-math {
+    margin: 0 0 0.8em 0;
+    padding: 0;
+  
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  blockquote {
+    background-color: #f9f9f9;
+    border-left: 5px solid #ccc;
+    padding: 0.1em 0.5em;
+  }
+  
+  ul li, ol li {
+    margin-left: 1.5em;
+    padding-left: 0;
+  }
+  ul li.task-list-item {
+    list-style-type: none;
+  }
+  input[type="checkbox" i] {
+    display: inline-block;
+    appearance: none;
+    position: relative;
+    box-sizing: border-box;
+    font-size: 1em;
+    width: 1em;
+    height: 1em;
+    vertical-align: -.2em;
+    border: 0.05em solid currentColor;
+    border-radius: 0.2em;
+    margin: 0;
+    margin-left: -1.35em;
+    margin-right: 0.15em;
+    padding: 0;
+  }
+  input[type="checkbox" i][checked]::before {
+    content: initial;
+  }
+  input[type="checkbox" i][checked]::after {
+    content: '';
+    box-sizing: border-box;
+    display: block;
+    width: 0.4em;
+    height: 0.8em;
+    border-color: currentColor;
+    border-style: solid;
+    border-width: 0 0.2em 0.2em 0;
+    transform: translateX(0.25em) rotate(40deg);
+  }
+  
+  pre {
+    white-space: pre-wrap;
+  }
+  code {
+    padding: 0.2em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.85em;
+    background-color: rgb(240, 240, 240);
+  }
+  pre code {
+    padding: 1em; /* Conflicts with syntax highlighting "pre code.hljs" padding. For now both have to have the same value. */
+    display: block;
+  }
+  
+  /* Mermaid diagrams */
+  .mermaid-diagram {
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+  }
+  .mermaid-diagram img, .mermaid-diagram svg {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 23cm; /* prevent text from overflowing page, approximation because we do not have access to the actual page content height */
+    object-fit: contain;
+  }
+  
+  /* KaTeX math */
+  .math-display {
+    width: 100%;
+  }
+  .katex-display {
+    margin: 0;
+  }
+  .katex-display>.katex {
+    white-space: normal;
+  }
+  
+  /* Variables for references */
+  :root {
+    --prefix-figure: "Figure ";
+    --prefix-table: "Table ";
+  }
+  :root:lang(de) {
+    --prefix-figure: "Abbildung ";
+    --prefix-table: "Tabelle ";
+  }
+  :root:lang(es) {
+    --prefix-figure: "Ilustración ";
+    --prefix-table: "Tabla ";
+  }
+  :root:lang(fr) {
+    --prefix-figure: "Figure ";
+    --prefix-table: "Tableau ";
+  }
+  :root:lang(pt) {
+    --prefix-figure: "Figura ";
+    --prefix-table: "Tabela ";
+  }
+  
+  /* Define counters */
+  html {
+    counter-reset: figure-counter table-counter h1-counter h2-counter h3-counter h4-counter h5-counter h6-counter h1-appendix-counter h2-appendix-counter h3-appendix-counter h4-appendix-counter h5-appendix-counter h6-appendix-counter;
+  }
+  
+  /* Reset sub-heading counters */
+  h1 {
+    counter-reset: h2-counter h3-counter h4-counter h5-counter h6-counter h2-appendix-counter h3-appendix-counter h4-appendix-counter h5-appendix-counter h6-appendix-counter;
+  }
+  h2 {
+    counter-reset: h3-counter h4-counter h5-counter h6-counter h3-appendix-counter h4-appendix-counter h5-appendix-counter h6-appendix-counter;
+  }
+  h3 {
+    counter-reset: h4-counter h5-counter h6-counter h4-appendix-counter h5-appendix-counter h6-appendix-counter;
+  }
+  h4 {
+    counter-reset: h5-counter h6-counter h5-appendix-counter h6-appendix-counter;
+  }
+  h5 {
+    counter-reset: h6-counter h6-appendix-counter;
+  }
+  
+  /* Increment heading counters */
+  h1.numbered {
+    counter-increment: h1-counter;
+  }
+  h2.numbered {
+    counter-increment: h2-counter;
+  }
+  h3.numbered {
+    counter-increment: h3-counter;
+  }
+  h4.numbered {
+    counter-increment: h4-counter;
+  }
+  h5.numbered {
+    counter-increment: h5-counter;
+  }
+  h6.numbered {
+    counter-increment: h6-counter;
+  }
+  
+  /* Increment appendix heading counters */
+  .appendix h1.numbered {
+    counter-increment: h1-appendix-counter;
+  }
+  .appendix h2.numbered {
+    counter-increment: h2-appendix-counter;
+  }
+  .appendix h3.numbered {
+    counter-increment: h3-appendix-counter;
+  }
+  .appendix h4.numbered {
+    counter-increment: h4-appendix-counter;
+  }
+  .appendix h5.numbered {
+    counter-increment: h5-appendix-counter;
+  }
+  .appendix h6.numbered {
+    counter-increment: h6-appendix-counter;
+  }
+  
+  /* Increment figure counter */
+  figure:has(figcaption) {
+    counter-increment: figure-counter;
+  }
+  
+  /* Increment table counter */
+  table:has(caption) {
+    counter-increment: table-counter;
+  }
+  
+  /* Heading numbers */
+  h1.numbered::before {
+    content: counter(h1-counter);
+  }
+  h2.numbered::before {
+    content: counter(h1-counter) "." counter(h2-counter);
+  }
+  h3.numbered::before {
+    content: counter(h1-counter) "." counter(h2-counter) "." counter(h3-counter);
+  }
+  h4.numbered::before {
+    content: counter(h1-counter) "." counter(h2-counter) "." counter(h3-counter) "." counter(h4-counter);
+  }
+  h5.numbered::before {
+    content: counter(h1-counter) "." counter(h2-counter) "." counter(h3-counter) "." counter(h4-counter) "." counter(h5-counter);
+  }
+  h6.numbered::before {
+    content: counter(h1-counter) "." counter(h2-counter) "." counter(h3-counter) "." counter(h4-counter) "." counter(h5-counter) "." counter(h6-counter);
+  }
+  
+  /* Appendix heading numbers */
+  .appendix h1.numbered::before {
+    content: counter(h1-appendix-counter, upper-alpha);
+  }
+  .appendix h2.numbered::before {
+    content: counter(h1-appendix-counter, upper-alpha) "." counter(h2-appendix-counter);
+  }
+  .appendix h3.numbered::before {
+    content: counter(h1-appendix-counter, upper-alpha) "." counter(h2-appendix-counter) "." counter(h3-appendix-counter);
+  }
+  .appendix h4.numbered::before {
+    content: counter(h1-appendix-counter, upper-alpha) "." counter(h2-appendix-counter) "." counter(h3-appendix-counter) "." counter(h4-appendix-counter);
+  }
+  .appendix h5.numbered::before {
+    content: counter(h1-appendix-counter, upper-alpha) "." counter(h2-appendix-counter) "." counter(h3-appendix-counter) "." counter(h4-appendix-counter) "." counter(h5-appendix-counter);
+  }
+  .appendix h6.numbered::before {
+    content: counter(h1-appendix-counter, upper-alpha) "." counter(h2-appendix-counter) "." counter(h3-appendix-counter) "." counter(h4-appendix-counter) "." counter(h5-appendix-counter) "." counter(h6-appendix-counter);
+  }
+  
+  /* Reference to heading */
+  .ref-heading-level1::before {
+    content: target-counter(attr(href), h1-counter) " ";
+  }
+  .ref-heading-level2::before {
+    content: target-counter(attr(href), h1-counter) "." target-counter(attr(href), h2-counter) " ";
+  }
+  .ref-heading-level3::before {
+    content: target-counter(attr(href), h1-counter) "." target-counter(attr(href), h2-counter) "." target-counter(attr(href), h3-counter) " ";
+  }
+  .ref-heading-level4::before {
+    content: target-counter(attr(href), h1-counter) "." target-counter(attr(href), h2-counter) "." target-counter(attr(href), h3-counter) "." target-counter(attr(href), h4-counter) " ";
+  }
+  .ref-heading-level5::before {
+    content: target-counter(attr(href), h1-counter) "." target-counter(attr(href), h2-counter) "." target-counter(attr(href), h3-counter) "." target-counter(attr(href), h4-counter) "." target-counter(attr(href), h5-counter) " ";
+  }
+  .ref-heading-level6::before {
+    content: target-counter(attr(href), h1-counter) "." target-counter(attr(href), h2-counter) "." target-counter(attr(href), h3-counter) "." target-counter(attr(href), h4-counter) "." target-counter(attr(href), h5-counter) "." target-counter(attr(href), h6-counter) " ";
+  }
+  
+  /* Reference to appendix heading */
+  .ref-appendix-level1::before {
+    content: target-counter(attr(href), h1-appendix-counter, upper-alpha) " ";
+  }
+  .ref-appendix-level2::before {
+    content: target-counter(attr(href), h1-appendix-counter, upper-alpha) "." target-counter(attr(href), h2-appendix-counter) " ";
+  }
+  .ref-appendix-level3::before {
+    content: target-counter(attr(href), h1-appendix-counter, upper-alpha) "." target-counter(attr(href), h2-appendix-counter) "." target-counter(attr(href), h3-appendix-counter) " ";
+  }
+  .ref-appendix-level4::before {
+    content: target-counter(attr(href), h1-appendix-counter, upper-alpha) "." target-counter(attr(href), h2-appendix-counter) "." target-counter(attr(href), h3-appendix-counter) "." target-counter(attr(href), h4-appendix-counter) " ";
+  }
+  .ref-appendix-level5::before {
+    content: target-counter(attr(href), h1-appendix-counter, upper-alpha) "." target-counter(attr(href), h2-appendix-counter) "." target-counter(attr(href), h3-appendix-counter) "." target-counter(attr(href), h4-appendix-counter) "." target-counter(attr(href), h5-appendix-counter) " ";
+  }
+  .ref-appendix-level6::before {
+    content: target-counter(attr(href), h1-appendix-counter, upper-alpha) "." target-counter(attr(href), h2-appendix-counter) "." target-counter(attr(href), h3-appendix-counter) "." target-counter(attr(href), h4-appendix-counter) "." target-counter(attr(href), h5-appendix-counter) "." target-counter(attr(href), h6-appendix-counter) " ";
+  }
+  
+  /* Figure */
+  figcaption::before {
+    content: var(--prefix-figure) counter(figure-counter) " - ";
+  }
+  .ref-figure::before {
+    content: var(--prefix-figure) target-counter(attr(href), figure-counter);
+  }
+  .ref-figure > .ref-title {
+    display: none;
+  }
+  
+  caption::before {
+    content: var(--prefix-table) counter(table-counter) " - ";
+  }
+  .ref-table::before {
+    content: var(--prefix-table) target-counter(attr(href), table-counter) " - ";
+  }
+  
+  /* Chapter number styling */
+  .numbered::before {
+    padding-right: 5mm;
+  }
+  
+  /* Reference styling: appear as regular text */
+  .ref {
+    color: inherit;
+    text-decoration: none;
+    font-style: inherit;
+  }
+  
+  html {
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    image-rendering: crisp-edges;
+  
+    font-family: "Noto Sans", sans-serif;
+    font-size: 11pt;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  @page {
+    size: A4 portrait;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+      break-inside: avoid;
+      break-after: avoid;
+  }
+  
+  html {
+    font-size: 11pt;
+  }
+  
+  /* Footnotes */
+  footnote {
+    float: footnote;
+  }
+  /* Footnote number in text */
+  ::footnote-call {
+    content: counter(footnote);
+    font-size: 70%;
+  }
+  .footnote-call-separator {
+    content: ',';
+  }
+  /* Footnote number in footnote area */
+  ::footnote-marker {
+    content: counter(footnote) '.';
+    display: inline-block;
+    width: 2em;
+    padding-right: 1em;
+    text-align: right;
+  }
+  
+  /* Helper classes */
+  .debug { 
+    background-color: red !important; 
+  }
+  
+  .markdown-inline, .markdown-inline > *:first-child {
+    display: inline;
+    margin-top: 0;
+  }
+  
+  .link-none {
+    color: inherit;
+    text-decoration: none;
+    font-style: inherit;
+  }
+  
+  .text-center {
+    text-align: center;
+  }
+  
+/* Define variables */
+:root {
+    --color-risk-critical: #E83221;
+    --color-risk-high: #FF9300;
+    --color-risk-medium: #FFDA00;
+    --color-risk-low: #4285F5;
+    --color-risk-info: #00AE51;
+
+    --color-status-open: #E83221;
+    --color-status-partial: #FF9300;
+    --color-status-resolved: #00AE51;
+    --color-status-accepted: #00AE51;
+    --color-status-changed: #4285F5;
+}
+
+/* Font settings */
+html {
+    font-family: "Noto Sans", sans-serif;
+    font-size: 11pt;
+}
+
+/* Classes for risk colors */
+.risk-critical { color: var(--color-risk-critical) !important; font-weight: bold; }
+.risk-high { color: var(--color-risk-high) !important; font-weight: bold; }
+.risk-medium { color: var(--color-risk-medium) !important; font-weight: bold; }
+.risk-low { color: var(--color-risk-low) !important; font-weight: bold; }
+.risk-info { color: var(--color-risk-info) !important; font-weight: bold; }
+
+.status-open { color: var(--color-status-open) !important; font-weight: bold; }
+.status-partial { color: var(--color-status-partial) !important; font-weight: bold; }
+.status-resolved { color: var(--color-status-resolved) !important; font-weight: bold; }
+.status-accepted { color: var(--color-status-accepted) !important; font-weight: bold; }
+.status-changed { color: var(--color-status-changed) !important; font-weight: bold; }
+
+
+/* PDF-specific global styles */
+@page {
+    size: A4 portrait;
+    margin: 35mm 26mm 26mm 26mm;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+pre code {
+  background-color: whitesmoke;
+  padding: 0.2em !important;
+}
+
+table {
+    table-layout: fixed;
+}
+.markdown table {
+    table-layout: auto;
+}
+
+/* helper classes */
+.location-ul {
+    margin: 0px;
+    margin-bottom:0.2em;
+}
+.highlight {
+    color: #303840;
+}
+
+
+
+
+
+
+
+
+/* #region header */
+@page {
+    margin-top: 35mm;
+
+    --header-background-color: #ABABAB;
+    --header-margin-bottom: 5mm;
+
+    @top-left-corner {
+        content: "";
+        background-color: var(--header-background-color); 
+        margin-bottom: var(--header-margin-bottom);
+    }
+    @top-left { 
+        content: element(header-left); 
+        background-color: var(--header-background-color); 
+        margin-bottom: var(--header-margin-bottom);
+        width: 51%;
+        margin-left: -1px;
+        margin-right: -1px;
+    }
+    @top-right { 
+        content: element(header-right); 
+        background-color: var(--header-background-color); 
+        margin-bottom: var(--header-margin-bottom); 
+        width: 51%;
+        margin-left: -1px;
+        margin-right: -1px;
+    }
+    @top-right-corner { 
+        content: "";
+        background-color: var(--header-background-color); 
+        margin-bottom: var(--header-margin-bottom); 
+    }
+}
+
+#header {
+    position: absolute;
+    width: 0;
+}
+
+#header #header-left { position: running(header-left); }
+#header #header-logo {
+    display: inline-block;
+    height: 100%;
+    width: 20mm;
+}
+#header #header-logo img { 
+    width: 100%;
+    height: auto; 
+}
+#header #header-title {
+    position: absolute;
+    top: 8mm;
+    left: 25mm;
+    color: #303840;
+    font-size: 16pt;
+    font-weight: bold;
+}
+
+#header #header-right { 
+    position: running(header-right); 
+    text-align: right;
+    color: white;
+    font-size: 9pt;
+}
+/* #endregion header */
+
+/* #region footer */
+@page {
+    @bottom-right-corner {
+        /* Page number */
+        content: counter(page) " / " counter(pages);
+        font-size: 9pt;
+    }
+}
+/* #endregion footer */
+
+/* #region page-cover */
+#page-cover {
+    page: page-cover;
+    margin: -35mm -26mm 10mm -26mm;
+}
+@page page-cover {
+    /* Hide header */
+    @top-left-corner { content: none !important; }
+    @top-left { content: none !important; }
+    @top-center { content: none !important; }
+    @top-right { content: none !important; }
+    @top-right-corner { content: none !important; }
+    /* Hide footer */
+    @bottom-left-corner { content: none !important; }
+    @bottom-left { content: none !important; }
+    @bottom-center { content: none !important; }
+    @bottom-right { content: none !important; }
+    @bottom-right-corner { content: none !important; }
+}
+
+#page-cover-background {
+    width: 100%;
+    height: 120mm;
+    overflow: hidden;
+    background-color: black;
+}
+
+#page-cover-background-img {
+    width: 100%;
+    transform: scale(1.16) translateY(-11%);
+    opacity: 0.7;
+}
+
+#page-cover-logo {
+    position: absolute;
+    top: -30mm;
+    left: -7mm;
+    width: 50%;
+}
+
+#page-cover-logo-text {
+    position: absolute;
+    top: -12mm;
+    left: 4mm;
+    color: #ffffff;
+}
+
+#page-cover-infobox {
+    position: absolute;
+    top: 30mm;
+    left: -1mm;
+    width: 150mm;
+    color: #ffffff;
+}
+
+#page-cover-title {
+    font-size: 18pt;
+    font-weight: normal;
+    margin-top: 0;
+    margin-bottom: 0.3em;
+}
+
+#page-cover-customer {
+    position: absolute;
+    top: 43mm;
+    left: -1mm;
+    width: 150mm;
+    color: #ffffff;
+}
+
+#page-cover-contact {
+    position: absolute;
+    top: 46mm;
+    right: 4mm;
+    text-align: right;
+    color: #ffffff;
+}
+/* #endregion page-cover */
+
+/* #region toc */
+#toc li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+#toc .ref::before {
+    padding-right: 0.5em;
+}
+#toc .ref::after {
+    content: " " leader(" ") " " target-counter(attr(href), page);
+    font-weight: normal;
+}
+#toc .toc-level1 {
+  padding-left: 0;
+  margin-top: 0.7rem;
+  font-weight: bold;
+}
+#toc .toc-level2 {
+  padding-left: 1.5rem;
+  margin-top: 0.35rem;
+  font-weight: normal;
+}
+#toc .toc-level3 {
+  padding-left: 3rem;
+  margin-top: 0.25rem;
+  font-weight: normal;
+}
+#toc .toc-level4 {
+  padding-left: 4.5rem;
+  margin-top: 0;
+  font-weight: normal;
+}
+/* #endregion toc */
+
+/* #region findings-list */
+#findings-list {
+    counter-reset: finding-counter;
+}
+#findings-list .finding-title::before {
+    counter-increment: finding-counter;
+    content: counter(finding-counter) ". ";
+}
+
+#findings-list .markdown h1 {
+    font-size: 13pt;
+    font-weight: bold;
+}
+
+#findings-list .markdown h2 {
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+#findings-list .markdown h3 {
+    font-size: 11pt;
+    font-weight: bold;
+}
+/* #endregion findings-list */

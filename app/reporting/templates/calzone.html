@@ -1,0 +1,363 @@
+<div data-sysreptor-generated="page-header" id="header" data-sysreptor-rendersections="always">
+    <div id="header-right">
+        <img src="/assets/name/logo-transparent.png" alt="logo" />
+    </div>
+</div>
+
+<div data-sysreptor-generated="page-footer" id="footer" data-sysreptor-rendersections="always">
+    <div id="footer-left"><em>CONFIDENTIAL</em></div>
+    <div id="footer-center">{{ report.title }}</div>
+</div>
+
+<div v-if="report.draft" id="watermark">DRAFT</div>
+
+
+
+<section id="page-cover" data-sysreptor-generated="page-cover" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Cover Page">
+    <div class="page-cover-title">
+        <h1>PENTEST REPORT</h1>
+        <h2>{{ report.title }}</h2>
+    </div>
+
+    <div class="page-cover-imprint">
+        <p>
+            <strong>Security Maximale GmbH</strong><br>
+            Example Street 47<br>
+            4711 Example<br>
+            FN 12345 v | D.C. Example
+        </p>
+        <p :set="lead_pentester = pentesters.find(p => p.roles.includes('lead'))">
+            <template v-if="lead_pentester">
+                <strong>Contact:</strong><br>
+                {{ lead_pentester.name }}<br>
+                <span v-if="lead_pentester.phone">Phone: {{ lead_pentester.phone }}<br></span>
+                <span v-if="lead_pentester.mobile">Mobile: {{ lead_pentester.mobile}}<br></span>
+                <span v-if="lead_pentester.email">Mail: {{ lead_pentester.email }}<br></span>
+            </template>
+        </p>
+    </div>
+
+    <div class="page-cover-recipient">
+        <p class="page-cover-address">
+            <strong>{{ report.customer_name }}</strong><br>
+            Attn. {{ report.receiver_name }}<br>
+            {{ report.customer_address.street }}<br>
+            {{ report.customer_address.city }}
+        </p>
+        <p class="page-cover-meta">
+            Example City, {{ formatDate(report.report_date, 'long') }}<br>
+            Report Version: {{ report.report_version }}
+        </p>
+    </div>
+    <pagebreak />
+</section>
+
+
+<table-of-contents id="toc" v-slot="tocItems">
+    <h1>Table of Contents</h1>
+    <ul>
+        <li v-for="item in tocItems" :class="'toc-level' + item.level">
+            <ref :to="item.id" />
+        </li>
+    </ul>
+    <pagebreak />
+</table-of-contents>
+
+
+<list-of-figures id="lof" v-slot="items">
+    <section v-if="items.length > 0">
+        <h1 class="in-toc">List of Figures</h1>
+        <ul>
+            <li v-for="item in items">
+                <ref :to="item.id" />
+            </li>
+        </ul>
+    </section>
+    <pagebreak />
+</list-of-figures>
+
+
+
+<section>
+    <h1 id="document-control" class="in-toc numbered">Document Control</h1>
+
+    <div>
+        <h2 id="team" class="in-toc numbered">Team</h2>
+        <table>
+            <tr>
+                <th style="width: auto;">Contact</th>
+                <th style="width: auto;">Details</th>
+                <th style="width: 8em;" align="center">Role</th>
+            </tr>
+            <tr v-for="u in pentesters">
+                <td>{{ u.name }}</td>
+                <td>
+                    <span v-if="u.mobile">Mobile: {{ u.mobile }}<br></span>
+                    <span v-if="u.email">E-Mail: {{ u.email }}</span>
+                </td>
+                <td align="center">
+                    <comma-and-join comma=", " and=", ">
+                        <template v-for="role in u.roles" #[role]>{{ {lead: 'Lead Pentester', pentester: 'Pentester',
+                            reviewer: 'Reviewer'}[role] || lodash.capitalize(role) }}</template>
+                    </comma-and-join>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div>
+        <h2 id="list-of-changes" class="in-toc numbered">List of Changes</h2>
+        <table>
+            <tr>
+                <th style="width: 4em;" align="center">Version</th>
+                <th style="width: auto;">Description</th>
+                <th style="width: 7em;" align="center">Date</th>
+            </tr>
+            <tr v-for="version in report.list_of_changes">
+                <td align="center">{{ version.version }}</td>
+                <td>{{ version.description }}</td>
+                <td align="center">{{ formatDate(version.date, 'medium') }}</td>
+            </tr>
+        </table>
+    </div>
+    <pagebreak />
+</section>
+
+
+
+
+
+
+
+<section id="section-executive-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Executive Summary">
+    <h1 id="executive-summary" class="in-toc numbered">Executive Summary</h1>
+
+    <div>
+        <h2 id="executive-summary-overview" class="in-toc numbered">Overview</h2>
+        <markdown v-if="report.executive_summary" :text="report.executive_summary" />
+    </div>
+
+    <div>
+        <h2 id="finding-summary" class="in-toc numbered">Identified Vulnerabilities</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 3em;" align="center">#</th>
+                    <th style="width: 3em;" align="center">CVSS</th>
+                    <th style="width: auto;">Description</th>
+                    <th style="width: 3em;" align="center">Page</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="finding in findings" class="table-row-link" :class="'risk-bg-' + finding.cvss.level">
+                    <td align="center">
+                        <ref :to="finding.id">{{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}</ref>
+                    </td>
+                    <td align="center">
+                        <ref :to="finding.id">{{ finding.cvss.score }}</ref>
+                    </td>
+                    <td>
+                        <ref :to="finding.id">{{ finding.title }}</ref>
+                    </td>
+                    <td align="center">
+                        <ref :to="finding.id" class="ref-page" />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div>
+        <h3 id="findings-summary" class="">Vulnerability Overview</h3>
+        <p>
+            In the course of this penetration test
+            <comma-and-join>
+                <template #critical v-if="finding_stats.count_critical > 0">
+                    <strong class="risk-critical">{{ finding_stats.count_critical }} Critical</strong>
+                </template>
+                <template #high v-if="finding_stats.count_high > 0">
+                    <strong class="risk-high">{{ finding_stats.count_high }} High</strong>
+                </template>
+                <template #medium v-if="finding_stats.count_medium > 0">
+                    <strong class="risk-medium">{{ finding_stats.count_medium }} Medium</strong>
+                </template>
+                <template #low v-if="finding_stats.count_low > 0">
+                    <strong class="risk-low">{{ finding_stats.count_low }} Low</strong>
+                </template>
+                <template #info v-if="finding_stats.count_info > 0">
+                    <strong class="risk-info">{{ finding_stats.count_info }} Info</strong>
+                </template>
+            </comma-and-join>
+            vulnerabilities were identified:
+        </p>
+
+        <figure>
+            <chart :width="15" :height="10" :config="{
+                type: 'bar', 
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low', 'Info'],
+                    datasets: [{
+                        data: [
+                            finding_stats.count_critical,
+                            finding_stats.count_high,
+                            finding_stats.count_medium,
+                            finding_stats.count_low,
+                            finding_stats.count_info
+                        ],
+                        backgroundColor: [
+                            cssvar('--color-risk-critical'), 
+                            cssvar('--color-risk-high'), 
+                            cssvar('--color-risk-medium'), 
+                            cssvar('--color-risk-low'), 
+                            cssvar('--color-risk-info')
+                        ],
+                    }]
+                },
+                options: {
+                    scales: {y: {beginAtZero: true, ticks: {precision: 0}}}, 
+                    plugins: {legend: {display: false}},
+                }
+            }" />
+            <figcaption>Distribution of identified vulnerabilities</figcaption>
+        </figure>
+    </div>
+    <pagebreak />
+</section>
+
+
+
+<section>
+    <h1 id="methodology" class="in-toc numbered">Methodology</h1>
+    <p>
+        This is a static text built into the design template. If this text changes from report to report, you can
+        easily make it dynamic by adding a new report field and replacing the text by the used variable, e.g.:
+        <code v-pre>
+            <div>{{ report.methodology }}</div>
+        </code>
+    </p>
+
+    <markdown>
+        ## Objective {#objective .in-toc.numbered}
+        This is also a static text. This time it's written in markdown.
+
+        Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
+        * Lorem ipsum dolor sit amet
+        * consetetur sadipscing elitr
+        * sed diam nonumy eirmod tempor
+        * Stet clita kasd gubergren
+        * dolore magna aliquyam erat
+    </markdown>
+
+    <div>
+        <h2 id="scope" class="in-toc numbered">Scope</h2>
+        <p>Here comes a static text with dynamic components:</p>
+        <p>
+            Lorem ipsum dolor sit amet, consetetur, from <strong>{{ formatDate(report.start_date, 'medium') }} to {{
+                formatDate(report.end_date, 'medium') }}</strong> no sea takimata sanctus est Lorem ipsum dolor sit
+            amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sea takimata sanctus est Lorem ipsum dolor
+            sit amet. Lorem ipsum dolor sit amet, consetetur, <strong>{{ report.duration }}</strong> consetetur
+            sadipscing elitr, sea takimata sanctus est Lorem ipsum dolor sit amet.
+        </p>
+
+        <markdown :text="report.scope" />
+    </div>
+
+
+    <div v-if="report.provided_users">
+        <h2 id="provided-users" class="in-toc numbered">User Accounts and Permissions</h2>
+        <markdown :text="report.provided_users" />
+    </div>
+    <pagebreak />
+</section>
+
+
+
+<section>
+    <h1 id="findings" class="in-toc numbered">Findings</h1>
+
+    <div v-for="finding in findings" :id="'findingsection-' + finding.id" data-sysreptor-rendersections="choosable" :data-sysreptor-rendersections-name="'Finding: ' + finding.title">
+        <table class="finding-header">
+            <colgroup>
+                <col class="table-key" />
+                <col />
+            </colgroup>
+            <tr>
+                <th colspan="2">
+                    <h2 :id="finding.id" class="in-toc text-center">
+                        {{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ findings.filter(f =>
+                        f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}:
+                        {{ finding.title }}
+                    </h2>
+                </th>
+            </tr>
+            <tr>
+                <td class="table-key">Score</td>
+                <td class="text-center" :class="'risk-bg-' + finding.cvss.level">
+                    {{ finding.cvss.score }} ({{ lodash.capitalize(finding.cvss.level) }})
+                </td>
+            </tr>
+            <tr>
+                <td class="table-key">Vector string</td>
+                <td>
+                    <span v-if="!finding.cvss.vector || finding.cvss.vector === 'n/a'">N/A</span>
+                    <span v-else>{{ finding.cvss.vector }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="table-key">Target</td>
+                <td>
+                    <span v-if="finding.affected_components.length === 0">-</span>
+                    <span v-else-if="finding.affected_components.length === 1">{{ finding.affected_components[0]
+                        }}</span>
+                    <ul v-else :class="{'finding-systems': true, 'finding-systems-cols': finding.affected_components.length >= 4}">
+                        <li v-for="c in finding.affected_components">{{ c }}</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td class="table-key">References</td>
+                <td>
+                    <span v-if="finding.references.length === 0">-</span>
+                    <span v-else-if="finding.references.length === 1">{{ finding.references[0] }}</span>
+                    <ul v-else>
+                        <li v-for="r in finding.references">{{ r }}</li>
+                    </ul>
+                </td>
+            </tr>
+        </table>
+
+        <h3>Overview</h3>
+        <markdown :text="finding.summary" />
+
+        <h3>Details</h3>
+        <markdown :text="finding.description" />
+
+        <h3>Recommendation</h3>
+        <markdown :text="finding.recommendation" />
+
+        <pagebreak />
+    </div>
+</section>
+
+
+<markdown>
+    # Disclaimer {#disclaimer .in-toc.numbered}
+
+    Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+    <pagebreak />
+</markdown>
+
+
+<section class="appendix">
+    <h1 id="appendix" class="in-toc numbered">Appendix</h1>
+    <markdown>
+        ## Static Appendix Section {.in-toc.numbered}
+        TODO: Appendix section content
+    </markdown>
+
+    <div v-if="report.appendix_sections.length > 0" v-for="appendix_section in report.appendix_sections">
+        <h2 class="in-toc numbered">{{ appendix_section.title }}</h2>
+        <markdown :text="appendix_section.content" />
+    </div>
+</section>
