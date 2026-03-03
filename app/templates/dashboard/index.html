@@ -4,12 +4,208 @@
 
 {% block content %}
 <div class="dashboard">
+
   <header class="dashboard__header">
-    <h1>Ghostbadger</h1>
+    <span class="dashboard__brand">Ghostbadger</span>
     <a class="btn btn--secondary btn--sm" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
   </header>
+
   <main class="dashboard__main">
-    <p>Connected. Build your features here.</p>
+
+    {% if error %}
+      <div class="alert alert--error">{{ error }}</div>
+    {% endif %}
+
+    <section class="projects">
+      <h2 class="section-title">Recent Projects</h2>
+
+      {% if not projects and not error %}
+        <p class="empty-state">No projects found on this Ghostwriter instance.</p>
+      {% endif %}
+
+      <div class="project-grid">
+        {% for project in projects %}
+          <button
+            class="project-card"
+            data-project-id="{{ project.id }}"
+            aria-expanded="false"
+          >
+            <div class="project-card__top">
+              <span class="project-card__codename">{{ project.codename }}</span>
+              <span class="badge {% if project.complete %}badge--done{% else %}badge--active{% endif %}">
+                {{ "Complete" if project.complete else "Active" }}
+              </span>
+            </div>
+            {% if project.client %}
+              <span class="project-card__client">{{ project.client.shortName or project.client.name }}</span>
+            {% endif %}
+            <div class="project-card__dates">
+              {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
+            </div>
+          </button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Reports panel (shown when a project is selected) -->
+    <section class="reports-panel" id="reports-panel" hidden>
+      <h2 class="section-title">
+        Reports for <span id="reports-panel-project"></span>
+      </h2>
+      <div id="reports-list" class="reports-list"></div>
+    </section>
+
+    <!-- Report data viewer (shown after generation) -->
+    <section class="report-viewer" id="report-viewer" hidden>
+      <div class="report-viewer__header">
+        <h2 class="section-title">Report Data</h2>
+        <button class="btn btn--secondary btn--sm" id="close-viewer">Close</button>
+      </div>
+      <pre class="json-block" id="report-json"></pre>
+    </section>
+
   </main>
 </div>
+
+<!-- Loading spinner overlay -->
+<div class="spinner-overlay" id="spinner" hidden>
+  <div class="spinner"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+
+  const spinner      = document.getElementById("spinner");
+  const reportsPanel = document.getElementById("reports-panel");
+  const reportsList  = document.getElementById("reports-list");
+  const panelTitle   = document.getElementById("reports-panel-project");
+  const viewer       = document.getElementById("report-viewer");
+  const jsonBlock    = document.getElementById("report-json");
+  const closeViewer  = document.getElementById("close-viewer");
+
+  function showSpinner() { spinner.hidden = false; }
+  function hideSpinner() { spinner.hidden = true; }
+
+  function showError(msg) {
+    const el = document.createElement("div");
+    el.className = "alert alert--error";
+    el.textContent = msg;
+    document.querySelector(".dashboard__main").prepend(el);
+    setTimeout(() => el.remove(), 6000);
+  }
+
+  // ── Project card click → load reports ─────────────────────────
+  document.querySelectorAll(".project-card").forEach((card) => {
+    card.addEventListener("click", async () => {
+      const id       = card.dataset.projectId;
+      const codename = card.querySelector(".project-card__codename").textContent.trim();
+
+      // Toggle: clicking the active card collapses
+      if (card.getAttribute("aria-expanded") === "true") {
+        card.setAttribute("aria-expanded", "false");
+        reportsPanel.hidden = true;
+        viewer.hidden = true;
+        return;
+      }
+
+      document.querySelectorAll(".project-card[aria-expanded='true']")
+        .forEach(c => c.setAttribute("aria-expanded", "false"));
+      card.setAttribute("aria-expanded", "true");
+
+      showSpinner();
+      reportsPanel.hidden = true;
+      viewer.hidden = true;
+
+      try {
+        const resp = await fetch(`/dashboard/api/project/${id}/reports`);
+        const body = await resp.json();
+        hideSpinner();
+
+        if (body.error) { showError(body.error); return; }
+
+        panelTitle.textContent = codename;
+        renderReports(body.reports);
+        reportsPanel.hidden = false;
+        reportsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      } catch (err) {
+        hideSpinner();
+        showError("Failed to load reports: " + err.message);
+      }
+    });
+  });
+
+  // ── Render report list ─────────────────────────────────────────
+  function renderReports(reports) {
+    reportsList.innerHTML = "";
+
+    if (!reports || reports.length === 0) {
+      reportsList.innerHTML = '<p class="empty-state">No reports for this project.</p>';
+      return;
+    }
+
+    reports.forEach((r) => {
+      const item = document.createElement("div");
+      item.className = "report-item";
+      item.innerHTML = `
+        <div class="report-item__info">
+          <span class="report-item__title">${escHtml(r.title || "Untitled")}</span>
+          <span class="badge ${r.complete ? "badge--done" : "badge--active"}">
+            ${r.complete ? "Complete" : "Draft"}
+          </span>
+        </div>
+        <button class="btn btn--primary btn--sm generate-btn" data-report-id="${r.id}">
+          Generate
+        </button>
+      `;
+      reportsList.appendChild(item);
+    });
+
+    reportsList.querySelectorAll(".generate-btn").forEach((btn) => {
+      btn.addEventListener("click", () => generateReport(btn.dataset.reportId));
+    });
+  }
+
+  // ── Generate report mutation ───────────────────────────────────
+  async function generateReport(reportId) {
+    showSpinner();
+    viewer.hidden = true;
+
+    try {
+      const resp = await fetch(`/dashboard/api/report/${reportId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = await resp.json();
+      hideSpinner();
+
+      if (body.error) { showError(body.error); return; }
+
+      jsonBlock.textContent = JSON.stringify(body.data, null, 2);
+      viewer.hidden = false;
+      viewer.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    } catch (err) {
+      hideSpinner();
+      showError("Failed to generate report: " + err.message);
+    }
+  }
+
+  // ── Close viewer ───────────────────────────────────────────────
+  closeViewer.addEventListener("click", () => {
+    viewer.hidden = true;
+    jsonBlock.textContent = "";
+  });
+
+  // ── Util ───────────────────────────────────────────────────────
+  function escHtml(str) {
+    return str.replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
+    );
+  }
+})();
+</script>
 {% endblock %}

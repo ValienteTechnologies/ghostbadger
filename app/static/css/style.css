@@ -200,10 +200,193 @@ html, body {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dashboard__brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -.01em;
 }
 
 .dashboard__main {
   flex: 1;
   padding: 2rem 1.5rem;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Section ────────────────────────────────────────────────── */
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 1rem;
+}
+
+.projects  { margin-bottom: 2.5rem; }
+.reports-panel,
+.report-viewer { margin-bottom: 2.5rem; }
+
+/* ── Alert ──────────────────────────────────────────────────── */
+.alert {
+  padding: .75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: .875rem;
+  margin-bottom: 1.5rem;
+}
+.alert--error { background: #3a1c1c; border: 1px solid var(--color-error); color: var(--color-error); }
+
+/* ── Project Grid ───────────────────────────────────────────── */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.project-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.project-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(88,166,255,.1);
+}
+.project-card[aria-expanded="true"] {
+  border-color: var(--color-accent);
+  background: #161e2e;
+}
+
+.project-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.project-card__codename {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.project-card__client {
+  font-size: .8125rem;
   color: var(--color-muted);
 }
+
+.project-card__dates {
+  font-size: .75rem;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Badge ──────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: .2em .55em;
+  border-radius: 2em;
+  font-size: .7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge--active { background: #1c2d3a; color: var(--color-accent); border: 1px solid var(--color-accent); }
+.badge--done   { background: #1c3a24; color: var(--color-success); border: 1px solid var(--color-success); }
+
+/* ── Reports list ───────────────────────────────────────────── */
+.reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.report-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: .875rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.report-item__info {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-width: 0;
+}
+
+.report-item__title {
+  font-weight: 600;
+  font-size: .9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Report JSON viewer ─────────────────────────────────────── */
+.report-viewer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.json-block {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: .8125rem;
+  line-height: 1.7;
+  overflow: auto;
+  max-height: 600px;
+  white-space: pre;
+  color: var(--color-text);
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  color: var(--color-muted);
+  font-size: .9rem;
+  padding: 1rem 0;
+}
+
+/* ── Spinner overlay ────────────────────────────────────────── */
+.spinner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
