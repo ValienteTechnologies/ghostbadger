@@ -20,6 +20,7 @@ from ..rendering.chromium import render_to_html
 from ..rendering.pipeline import BUNDLE, make_vue_data
 from ..rendering.resources import build
 from ..rendering.weasyprint import render_to_pdf
+from ..vaultwarden import VaultwardenError, get_vw_client, is_vault_connected, is_vaultwarden_configured
 from . import bp
 
 _render_jobs:  dict[str, dict] = {}
@@ -49,6 +50,7 @@ def index():
         error=error,
         templates=templates,
         selected_template=selected,
+        vaultwarden_configured=is_vaultwarden_configured(current_app),
     )
 
 
@@ -253,3 +255,111 @@ def download_pdf(job_id: str):
         mimetype="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── Vaultwarden routes ─────────────────────────────────────────────────────────
+
+@bp.route("/api/vault/connect", methods=["POST"])
+@csrf.exempt
+@require_token
+def vault_connect():
+    if not is_vaultwarden_configured(current_app):
+        return jsonify({"error": "Vaultwarden not configured on this server."}), 503
+    data          = request.get_json(silent=True) or {}
+    client_id     = data.get("client_id", "").strip()
+    client_secret = data.get("client_secret", "").strip()
+    master_pw     = data.get("master_password", "").strip()
+    if not client_id or not client_secret or not master_pw:
+        return jsonify({"error": "client_id, client_secret, and master_password are required."}), 400
+    try:
+        from ..vaultwarden import VaultwardenClient
+        client = VaultwardenClient(
+            server_url      = current_app.config["VAULTWARDEN_URL"],
+            client_id       = client_id,
+            client_secret   = client_secret,
+            master_password = master_pw,
+            org_id          = current_app.config["VAULTWARDEN_ORG_ID"],
+            collection_id   = current_app.config["VAULTWARDEN_COLLECTION_ID"],
+        )
+        session_key = client.connect()
+        # Store in Flask session (cleared on logout / JWT expiry)
+        session["vw_client_id"]     = client_id
+        session["vw_client_secret"] = client_secret
+        session["vw_master_password"] = master_pw
+        session["vw_session_key"]   = session_key
+        return jsonify({"status": "unlocked"})
+    except VaultwardenError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@bp.route("/api/vault/status")
+@require_token
+def vault_status():
+    configured = is_vaultwarden_configured(current_app)
+    if not configured:
+        return jsonify({"configured": False, "status": "unconfigured", "server": ""})
+    if not is_vault_connected():
+        return jsonify({"configured": True, "status": "unauthenticated", "server": current_app.config["VAULTWARDEN_URL"]})
+    try:
+        data = get_vw_client().status()
+        return jsonify({
+            "configured": True,
+            "status":     data.get("status", "unknown"),
+            "server":     data.get("serverUrl", current_app.config["VAULTWARDEN_URL"]),
+        })
+    except VaultwardenError as exc:
+        return jsonify({"configured": True, "status": "error", "error": str(exc)}), 502
+
+
+@bp.route("/api/vault/credential", methods=["POST"])
+@csrf.exempt
+@require_token
+def vault_credential():
+    if not is_vaultwarden_configured(current_app):
+        return jsonify({"error": "Vaultwarden not configured."}), 503
+    if not is_vault_connected():
+        return jsonify({"error": "Not connected to Vaultwarden. Connect first."}), 401
+    data = request.get_json(silent=True) or {}
+    name     = data.get("name", "").strip()
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    if not name or not password:
+        return jsonify({"error": "name and password are required."}), 400
+    try:
+        item = get_vw_client().add_login(
+            name=name,
+            username=username,
+            password=password,
+            url=data.get("url") or None,
+            notes=data.get("notes") or None,
+        )
+        return jsonify(item)
+    except VaultwardenError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@bp.route("/api/vault/send", methods=["POST"])
+@csrf.exempt
+@require_token
+def vault_send():
+    if not is_vaultwarden_configured(current_app):
+        return jsonify({"error": "Vaultwarden not configured."}), 503
+    if not is_vault_connected():
+        return jsonify({"error": "Not connected to Vaultwarden. Connect first."}), 401
+    data = request.get_json(silent=True) or {}
+    name        = data.get("name", "").strip()
+    text        = data.get("text", "").strip()
+    delete_days = int(data.get("delete_days", 7))
+    password    = data.get("password") or None
+    if not name or not text:
+        return jsonify({"error": "name and text are required."}), 400
+    try:
+        send = get_vw_client().create_text_send(
+            name=name,
+            text=text,
+            delete_days=delete_days,
+            password=password,
+        )
+        return jsonify(send)
+    except VaultwardenError as exc:
+        return jsonify({"error": str(exc)}), 502

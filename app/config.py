@@ -10,6 +10,10 @@ class Config:
 
     GHOSTWRITER_URL = os.environ.get("GHOSTWRITER_URL", "")
 
+    VAULTWARDEN_URL           = os.environ.get("VAULTWARDEN_URL", "")
+    VAULTWARDEN_ORG_ID        = os.environ.get("VAULTWARDEN_ORG_ID", "")
+    VAULTWARDEN_COLLECTION_ID = os.environ.get("VAULTWARDEN_COLLECTION_ID", "")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

@@ -19,6 +19,13 @@
       {% endif %}
     </div>
     <div class="drawer__footer">
+      {% if vaultwarden_configured %}
+      <div class="drawer__vaultwarden">
+        <span id="vw-status-dot" class="vw-dot" title="Vaultwarden status"></span>
+        <button id="vw-connect-btn" class="btn btn--ghost btn--sm" style="flex:1">Connect to Vaultwarden</button>
+      </div>
+      {% endif %}
+
       <a class="btn btn--ghost btn--sm btn--full" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
     </div>
   </nav>
@@ -103,7 +110,46 @@
             <button class="btn btn--secondary export-field__randomize" id="randomize-user-pw" title="Generate password">↺</button>
           </div>
         </div>
+
+        {% if vaultwarden_configured %}
+        <div class="export-steps" id="export-steps" hidden>
+          <!-- Step 1: Save to Vault -->
+          <div class="export-step" id="step-vault">
+            <div class="export-step__heading">
+              <span class="export-step__num">1</span>
+              <span class="export-step__label">Save to Vaultwarden</span>
+              <span class="export-step__check" id="step-vault-check" hidden>&#10003;</span>
+            </div>
+            <button class="btn btn--secondary btn--sm" id="btn-save-vault">Save to Vault</button>
+          </div>
+
+          <!-- Step 2: Create Send -->
+          <div class="export-step export-step--disabled" id="step-send">
+            <div class="export-step__heading">
+              <span class="export-step__num">2</span>
+              <span class="export-step__label">Create Send Link</span>
+              <span class="export-step__check" id="step-send-check" hidden>&#10003;</span>
+            </div>
+            <div class="expiry-selector" id="expiry-selector">
+              <button class="expiry-btn" data-days="30">30d</button>
+              <button class="expiry-btn expiry-btn--active" data-days="14">14d</button>
+              <button class="expiry-btn" data-days="1">1d</button>
+            </div>
+            <button class="btn btn--secondary btn--sm" id="btn-create-send">Create Send Link</button>
+          </div>
+
+          <!-- Step 3: Download -->
+          <div class="export-step export-step--disabled" id="step-download">
+            <div class="export-step__heading">
+              <span class="export-step__num">3</span>
+              <span class="export-step__label">Download PDF</span>
+            </div>
+            <a class="btn btn--primary btn--sm" id="pdf-download-btn" hidden>Download PDF</a>
+          </div>
+        </div>
+        {% else %}
         <a class="btn btn--primary" id="pdf-download-btn" hidden>Download PDF</a>
+        {% endif %}
       </div>
     </section>
 
@@ -145,6 +191,36 @@
 
 </div>
 
+{% if vaultwarden_configured %}
+<!-- ── Vaultwarden connect modal ──────────────────────────────── -->
+<div class="modal-backdrop" id="vw-modal-backdrop" hidden>
+  <div class="modal" id="vw-modal" role="dialog" aria-modal="true" aria-labelledby="vw-modal-title">
+    <div class="modal__header">
+      <span class="modal__title" id="vw-modal-title">Connect to Vaultwarden</span>
+      <button class="modal__close" id="vw-modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal__body">
+      <div class="modal-field">
+        <label class="modal-field__label" for="vw-client-id">Client ID</label>
+        <input class="modal-field__input" type="text" id="vw-client-id" placeholder="user.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+      </div>
+      <div class="modal-field">
+        <label class="modal-field__label" for="vw-client-secret">Client Secret</label>
+        <input class="modal-field__input" type="password" id="vw-client-secret" placeholder="Required" autocomplete="new-password">
+      </div>
+      <div class="modal-field">
+        <label class="modal-field__label" for="vw-master-pw">Master Password</label>
+        <input class="modal-field__input" type="password" id="vw-master-pw" placeholder="Required" autocomplete="new-password">
+      </div>
+      <p class="modal__hint">Credentials are kept in your session only — never stored on disk.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" id="vw-modal-submit">Connect</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="flash-container" id="flash-container"></div>
 
 <div class="spinner-overlay" id="spinner" hidden>
@@ -163,7 +239,6 @@
   const exportUserPw     = document.getElementById("export-user-pw");
 
   // ── PDF panel refs ─────────────────────────────────────────────
-  const spinner          = document.getElementById("spinner");
   const pdfPanel         = document.getElementById("pdf-panel");
   const pdfIdle          = document.getElementById("pdf-idle");
   const pdfProgress      = document.getElementById("pdf-progress");
@@ -176,14 +251,29 @@
   const statusbarElapsed = document.getElementById("statusbar-elapsed");
   const statusbarToggle  = document.getElementById("statusbar-toggle");
   const statusbarMsgs    = document.getElementById("statusbar-msgs");
-  const flashContainer = document.getElementById("flash-container");
+  const flashContainer   = document.getElementById("flash-container");
 
-  let _activeReportId  = null;
-  let _activeJobId     = null;
-  let _currentPdfUrl   = null;
-  let _activeEs        = null;
-  let _renderTimer     = null;
-  let _renderT0        = null;
+  // ── Vaultwarden refs (may be null when not configured) ─────────
+  const vwConfigured  = !!document.getElementById("export-steps");
+  const exportSteps   = document.getElementById("export-steps");
+  const stepVault     = document.getElementById("step-vault");
+  const stepSend      = document.getElementById("step-send");
+  const stepDownload  = document.getElementById("step-download");
+  const btnSaveVault  = document.getElementById("btn-save-vault");
+  const btnCreateSend = document.getElementById("btn-create-send");
+  const stepVaultCheck = document.getElementById("step-vault-check");
+  const stepSendCheck  = document.getElementById("step-send-check");
+  const vwConnectBtn  = document.getElementById("vw-connect-btn");
+  const vwDot         = document.getElementById("vw-status-dot");
+
+  let _activeReportId   = null;
+  let _activeJobId      = null;
+  let _activeReportTitle = null;
+  let _currentPdfUrl    = null;
+  let _activeEs         = null;
+  let _renderTimer      = null;
+  let _renderT0         = null;
+  let _expiryDays       = 14;
 
   // ── Export helpers ─────────────────────────────────────────────
   function slugify(title) {
@@ -198,7 +288,7 @@
 
   function updateDownloadState() {
     const ready = exportOwnerPw.value.trim() && exportUserPw.value.trim();
-    pdfDownloadBtn.classList.toggle("btn--disabled", !ready);
+    if (pdfDownloadBtn) pdfDownloadBtn.classList.toggle("btn--disabled", !ready);
   }
 
   exportOwnerPw.addEventListener("input", updateDownloadState);
@@ -224,10 +314,6 @@
     setTimeout(() => el.remove(), ttl);
   }
 
-  function showError(msg) {
-    showFlash("error", msg, 6000);
-  }
-
   function showEvidenceFlash(fetched, failed) {
     const total = fetched + failed;
     if (total === 0) {
@@ -239,13 +325,74 @@
     }
   }
 
+  // ── Trigger encrypted download ─────────────────────────────────
+  async function doDownload() {
+    if (!exportOwnerPw.value.trim() || !exportUserPw.value.trim()) {
+      showFlash("error", "Both owner and user passwords are required to download.");
+      return;
+    }
+    if (!_activeJobId) return;
+
+    if (pdfDownloadBtn) pdfDownloadBtn.classList.add("btn--disabled");
+    try {
+      const resp = await fetch(`/dashboard/api/render/${_activeJobId}/pdf/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner_password: exportOwnerPw.value,
+          user_password:  exportUserPw.value,
+          filename:       exportFilename.value || `report-${_activeReportId}.pdf`,
+        }),
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showFlash("error", body.error || "Encryption failed.");
+        return;
+      }
+      const url  = URL.createObjectURL(await resp.blob());
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = exportFilename.value || `report-${_activeReportId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showFlash("error", "Download failed: " + err.message);
+    } finally {
+      updateDownloadState();
+    }
+  }
+
+  if (pdfDownloadBtn) {
+    pdfDownloadBtn.addEventListener("click", (e) => { e.preventDefault(); doDownload(); });
+  }
+
+  pdfCloseBtn.addEventListener("click", () => {
+    if (_activeEs) { _activeEs.close(); _activeEs = null; }
+    stopTimer();
+    if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
+    pdfIframe.src       = "";
+    pdfIframe.hidden    = true;
+    pdfProgress.hidden  = true;
+    pdfStatusbar.hidden = true;
+    if (pdfDownloadBtn) pdfDownloadBtn.hidden = true;
+    if (exportSteps)    exportSteps.hidden    = true;
+    pdfCloseBtn.hidden  = true;
+    pdfIdle.hidden      = false;
+  });
+
+  statusbarToggle.addEventListener("click", () => {
+    statusbarMsgs.hidden = !statusbarMsgs.hidden;
+    statusbarToggle.textContent = statusbarMsgs.hidden ? "▾" : "▴";
+  });
+
   // ── View PDF (event delegation on all .view-btn) ───────────────
   document.addEventListener("click", (e) => {
     const btn = e.target.closest(".view-btn");
     if (!btn) return;
-    _activeReportId = btn.dataset.reportId;
-    if (btn.dataset.reportTitle) {
-      exportFilename.value = slugify(btn.dataset.reportTitle);
+    _activeReportId    = btn.dataset.reportId;
+    _activeReportTitle = btn.dataset.reportTitle || "";
+    if (_activeReportTitle) {
+      exportFilename.value = slugify(_activeReportTitle);
     }
     startPdfRender();
   });
@@ -260,7 +407,8 @@
     pdfProgress.hidden      = false;
     pdfIframe.hidden        = true;
     pdfIframe.src           = "";
-    pdfDownloadBtn.hidden   = true;
+    if (pdfDownloadBtn) pdfDownloadBtn.hidden = true;
+    if (exportSteps)    { exportSteps.hidden = true; resetVaultSteps(); }
     pdfCloseBtn.hidden      = true;
     pdfStatusbar.hidden     = true;
     statusbarMsgs.innerHTML = "";
@@ -295,61 +443,6 @@
     }
     statusbarMsgs.scrollTop = statusbarMsgs.scrollHeight;
   }
-
-  pdfDownloadBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    if (!exportOwnerPw.value.trim() || !exportUserPw.value.trim()) {
-      showFlash("error", "Both owner and user passwords are required to download.");
-      return;
-    }
-    if (!_activeJobId) return;
-
-    pdfDownloadBtn.classList.add("btn--disabled");
-    try {
-      const resp = await fetch(`/dashboard/api/render/${_activeJobId}/pdf/download`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          owner_password: exportOwnerPw.value,
-          user_password:  exportUserPw.value,
-          filename:       exportFilename.value || `report-${_activeReportId}.pdf`,
-        }),
-      });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        showFlash("error", body.error || "Encryption failed.");
-        return;
-      }
-      const url  = URL.createObjectURL(await resp.blob());
-      const a    = document.createElement("a");
-      a.href     = url;
-      a.download = exportFilename.value || `report-${_activeReportId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      showFlash("error", "Download failed: " + err.message);
-    } finally {
-      updateDownloadState();
-    }
-  });
-
-  pdfCloseBtn.addEventListener("click", () => {
-    if (_activeEs) { _activeEs.close(); _activeEs = null; }
-    stopTimer();
-    if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
-    pdfIframe.src          = "";
-    pdfIframe.hidden       = true;
-    pdfProgress.hidden     = true;
-    pdfStatusbar.hidden    = true;
-    pdfDownloadBtn.hidden  = true;
-    pdfCloseBtn.hidden     = true;
-    pdfIdle.hidden         = false;
-  });
-
-  statusbarToggle.addEventListener("click", () => {
-    statusbarMsgs.hidden = !statusbarMsgs.hidden;
-    statusbarToggle.textContent = statusbarMsgs.hidden ? "▾" : "▴";
-  });
 
   // ── Core async render ──────────────────────────────────────────
   async function startPdfRender() {
@@ -435,12 +528,20 @@
           pdfCloseBtn.hidden = false;
           return;
         }
-        _currentPdfUrl = URL.createObjectURL(await resp.blob());
+        _currentPdfUrl   = URL.createObjectURL(await resp.blob());
         pdfIframe.src    = _currentPdfUrl;
         pdfIframe.hidden = false;
-        pdfDownloadBtn.hidden = false;
-        updateDownloadState();
-        pdfCloseBtn.hidden      = false;
+        pdfCloseBtn.hidden = false;
+
+        if (vwConfigured) {
+          // Show the multi-step export flow
+          exportSteps.hidden = false;
+          // Step 1 already enabled; steps 2+3 start disabled (handled by CSS class)
+          updateDownloadState();
+        } else {
+          pdfDownloadBtn.hidden = false;
+          updateDownloadState();
+        }
       } catch (err) {
         addStatusMsg("error", "Could not display PDF: " + err.message);
         pdfCloseBtn.hidden = false;
@@ -477,6 +578,194 @@
       } catch (_) {}
     });
   });
+
+  // ── Vaultwarden: modal ─────────────────────────────────────────
+  const vwModalBackdrop = document.getElementById("vw-modal-backdrop");
+  const vwModalClose    = document.getElementById("vw-modal-close");
+  const vwModalSubmit   = document.getElementById("vw-modal-submit");
+  const vwClientId      = document.getElementById("vw-client-id");
+  const vwClientSecret  = document.getElementById("vw-client-secret");
+  const vwMasterPw      = document.getElementById("vw-master-pw");
+
+  function openVwModal() {
+    if (vwModalBackdrop) vwModalBackdrop.hidden = false;
+    if (vwClientId) vwClientId.focus();
+  }
+  function closeVwModal() {
+    if (vwModalBackdrop) vwModalBackdrop.hidden = true;
+  }
+
+  if (vwConnectBtn)    vwConnectBtn.addEventListener("click", openVwModal);
+  if (vwModalClose)    vwModalClose.addEventListener("click", closeVwModal);
+  if (vwModalBackdrop) {
+    vwModalBackdrop.addEventListener("click", (e) => {
+      if (e.target === vwModalBackdrop) closeVwModal();
+    });
+  }
+
+  if (vwModalSubmit) {
+    vwModalSubmit.addEventListener("click", async () => {
+      const clientId     = vwClientId.value.trim();
+      const clientSecret = vwClientSecret.value.trim();
+      const masterPw     = vwMasterPw.value.trim();
+      if (!clientId || !clientSecret || !masterPw) {
+        showFlash("error", "All three fields are required.");
+        return;
+      }
+      vwModalSubmit.disabled    = true;
+      vwModalSubmit.textContent = "Connecting…";
+      setVwDot("pending");
+      try {
+        const resp = await fetch("/dashboard/api/vault/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, master_password: masterPw }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          setVwDot("err");
+          showFlash("error", data.error || "Connection failed.");
+        } else {
+          setVwDot("ok");
+          if (vwConnectBtn) vwConnectBtn.textContent = "Connected ✓";
+          showFlash("success", "Connected to Vaultwarden.");
+          closeVwModal();
+          // Clear sensitive fields
+          vwClientSecret.value = "";
+          vwMasterPw.value     = "";
+        }
+      } catch (err) {
+        setVwDot("err");
+        showFlash("error", "Connection error: " + err.message);
+      } finally {
+        vwModalSubmit.disabled    = false;
+        vwModalSubmit.textContent = "Connect";
+      }
+    });
+  }
+
+  function setVwDot(state) {
+    if (!vwDot) return;
+    vwDot.className = "vw-dot";
+    if (state === "ok")      vwDot.classList.add("vw-dot--ok");
+    else if (state === "warn") vwDot.classList.add("vw-dot--warn");
+    else if (state === "err")  vwDot.classList.add("vw-dot--err");
+  }
+
+  // ── Vaultwarden: export steps ──────────────────────────────────
+  function resetVaultSteps() {
+    if (!vwConfigured) return;
+    stepVault.classList.remove("export-step--disabled");
+    stepSend.classList.add("export-step--disabled");
+    stepDownload.classList.add("export-step--disabled");
+    if (stepVaultCheck)  stepVaultCheck.hidden = true;
+    if (stepSendCheck)   stepSendCheck.hidden  = true;
+    if (pdfDownloadBtn)  pdfDownloadBtn.hidden = true;
+    if (btnSaveVault)    btnSaveVault.disabled  = false;
+    if (btnCreateSend)   btnCreateSend.disabled = false;
+  }
+
+  // Expiry selector
+  if (exportSteps) {
+    document.querySelectorAll(".expiry-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".expiry-btn").forEach((b) =>
+          b.classList.toggle("expiry-btn--active", b === btn)
+        );
+        _expiryDays = parseInt(btn.dataset.days, 10);
+      });
+    });
+  }
+
+  // Step 1: Save to Vault
+  if (btnSaveVault) {
+    btnSaveVault.addEventListener("click", async () => {
+      if (!exportUserPw.value.trim()) {
+        showFlash("error", "Set a user password before saving to vault.");
+        return;
+      }
+      btnSaveVault.disabled = true;
+      btnSaveVault.textContent = "Saving…";
+      const filename = exportFilename.value || `report-${_activeReportId}.pdf`;
+      const title    = _activeReportTitle || filename;
+      const now      = new Date().toISOString().slice(0, 10);
+      try {
+        const resp = await fetch("/dashboard/api/vault/credential", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name:     title,
+            username: filename,
+            password: exportUserPw.value,
+            notes:    `Generated ${now} via Ghostbadger`,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showFlash("error", data.error || "Failed to save to vault.");
+          btnSaveVault.disabled    = false;
+          btnSaveVault.textContent = "Save to Vault";
+          return;
+        }
+        stepVaultCheck.hidden = false;
+        btnSaveVault.textContent = "Saved ✓";
+        showFlash("success", "Password saved to Vaultwarden.");
+        // Enable step 2
+        stepSend.classList.remove("export-step--disabled");
+      } catch (err) {
+        showFlash("error", "Vault error: " + err.message);
+        btnSaveVault.disabled    = false;
+        btnSaveVault.textContent = "Save to Vault";
+      }
+    });
+  }
+
+  // Step 2: Create Send
+  if (btnCreateSend) {
+    btnCreateSend.addEventListener("click", async () => {
+      btnCreateSend.disabled    = true;
+      btnCreateSend.textContent = "Creating…";
+      const filename = exportFilename.value || `report-${_activeReportId}.pdf`;
+      const title    = _activeReportTitle || filename;
+      const text     = `Report: ${title}\nFile: ${filename}\nPassword: ${exportUserPw.value}`;
+      try {
+        const resp = await fetch("/dashboard/api/vault/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name:        title,
+            text:        text,
+            delete_days: _expiryDays,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showFlash("error", data.error || "Failed to create Send.");
+          btnCreateSend.disabled    = false;
+          btnCreateSend.textContent = "Create Send Link";
+          return;
+        }
+        const accessUrl = data.accessUrl || data.access_url || "";
+        if (accessUrl) {
+          await navigator.clipboard.writeText(accessUrl).catch(() => {});
+          showFlash("success", "Send link copied to clipboard!");
+        } else {
+          showFlash("success", "Send created.");
+        }
+        stepSendCheck.hidden = false;
+        btnCreateSend.textContent = "Created ✓";
+        // Enable step 3
+        stepDownload.classList.remove("export-step--disabled");
+        pdfDownloadBtn.hidden = false;
+        updateDownloadState();
+      } catch (err) {
+        showFlash("error", "Send error: " + err.message);
+        btnCreateSend.disabled    = false;
+        btnCreateSend.textContent = "Create Send Link";
+      }
+    });
+  }
+
 })();
 </script>
 {% endblock %}

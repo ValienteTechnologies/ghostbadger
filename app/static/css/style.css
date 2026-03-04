@@ -668,3 +668,196 @@ html, body {
 .statusbar__msg--error   { color: var(--color-error); }
 .statusbar__msg--warning { color: var(--color-warning); }
 .statusbar__msg--info    { color: var(--color-muted); }
+
+/* ── Modal ───────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem .75rem;
+  border-bottom: 1px solid var(--color-border-2);
+}
+
+.modal__title {
+  font-weight: 600;
+  font-size: .9375rem;
+}
+
+.modal__close {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 .25rem;
+}
+.modal__close:hover { color: var(--color-text); }
+
+.modal__body {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.modal__hint {
+  font-size: .75rem;
+  color: var(--color-muted);
+  margin-top: .25rem;
+}
+
+.modal__footer {
+  padding: .75rem 1.25rem 1rem;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border-2);
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+
+.modal-field__label {
+  font-size: .8125rem;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.modal-field__input {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: .875rem;
+  padding: .4375rem .625rem;
+  width: 100%;
+}
+.modal-field__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* ── Vaultwarden drawer ──────────────────────────────────────── */
+.drawer__vaultwarden {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .5rem;
+}
+
+.vw-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: background .2s;
+}
+.vw-dot--ok   { background: var(--color-success); }
+.vw-dot--warn { background: var(--color-warning); }
+.vw-dot--err  { background: var(--color-error); }
+
+/* ── Vaultwarden export steps ────────────────────────────────── */
+.export-steps {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  margin-top: .25rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--color-border-2);
+}
+
+.export-step {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: .625rem .75rem;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-2);
+  transition: opacity .2s;
+}
+
+.export-step--disabled {
+  opacity: .4;
+  pointer-events: none;
+}
+
+.export-step__heading {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.export-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-border);
+  color: var(--color-muted);
+  font-size: .6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.export-step__label {
+  font-size: .8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.export-step__check {
+  margin-left: auto;
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+/* ── Expiry selector ─────────────────────────────────────────── */
+.expiry-selector {
+  display: flex;
+  gap: .25rem;
+}
+
+.expiry-btn {
+  flex: 1;
+  padding: .3125rem 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: .75rem;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.expiry-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+.expiry-btn--active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
