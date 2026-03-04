@@ -48,7 +48,6 @@ async def _render(
             f'</head>'
             f'<body></body>'
             f'</html>',
-            base_url=f"{RENDER_ORIGIN}/",
         )
 
         if css:
