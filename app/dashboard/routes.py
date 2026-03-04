@@ -1,10 +1,13 @@
 import base64
+import io
 import json as _json
 import logging
 import queue
 import threading
 import time
 import uuid
+
+import pikepdf
 
 from flask import Response, current_app, jsonify, render_template, request, session, stream_with_context
 
@@ -212,4 +215,41 @@ def render_pdf(job_id: str):
         job["pdf"],
         mimetype="application/pdf",
         headers={"Content-Disposition": "inline; filename=report.pdf"},
+    )
+
+
+@bp.route("/api/render/<job_id>/pdf/download", methods=["POST"])
+@csrf.exempt
+@require_token
+def download_pdf(job_id: str):
+    job = _render_jobs.get(job_id)
+    if not job or not job["done"]:
+        return jsonify({"error": "Not ready"}), 404
+    if job["error"] or not job["pdf"]:
+        return jsonify({"error": job.get("error", "Render failed")}), 500
+
+    data = request.get_json(silent=True) or {}
+    owner_pw = data.get("owner_password", "").strip()
+    user_pw  = data.get("user_password", "").strip()
+    filename = data.get("filename", "report.pdf").strip() or "report.pdf"
+
+    if not owner_pw or not user_pw:
+        return jsonify({"error": "Both owner and user passwords are required."}), 400
+
+    src = pikepdf.open(io.BytesIO(job["pdf"]))
+    out = io.BytesIO()
+    src.save(
+        out,
+        encryption=pikepdf.Encryption(
+            owner=owner_pw,
+            user=user_pw,
+            R=6,
+        ),
+    )
+    out.seek(0)
+
+    return Response(
+        out.read(),
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

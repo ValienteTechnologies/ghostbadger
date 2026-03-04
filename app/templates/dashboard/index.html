@@ -179,6 +179,7 @@
   const flashContainer = document.getElementById("flash-container");
 
   let _activeReportId  = null;
+  let _activeJobId     = null;
   let _currentPdfUrl   = null;
   let _activeEs        = null;
   let _renderTimer     = null;
@@ -295,10 +296,40 @@
     statusbarMsgs.scrollTop = statusbarMsgs.scrollHeight;
   }
 
-  pdfDownloadBtn.addEventListener("click", (e) => {
+  pdfDownloadBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
     if (!exportOwnerPw.value.trim() || !exportUserPw.value.trim()) {
-      e.preventDefault();
       showFlash("error", "Both owner and user passwords are required to download.");
+      return;
+    }
+    if (!_activeJobId) return;
+
+    pdfDownloadBtn.classList.add("btn--disabled");
+    try {
+      const resp = await fetch(`/dashboard/api/render/${_activeJobId}/pdf/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner_password: exportOwnerPw.value,
+          user_password:  exportUserPw.value,
+          filename:       exportFilename.value || `report-${_activeReportId}.pdf`,
+        }),
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showFlash("error", body.error || "Encryption failed.");
+        return;
+      }
+      const url  = URL.createObjectURL(await resp.blob());
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = exportFilename.value || `report-${_activeReportId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showFlash("error", "Download failed: " + err.message);
+    } finally {
+      updateDownloadState();
     }
   });
 
@@ -342,6 +373,7 @@
         return;
       }
       jobId = body.job_id;
+      _activeJobId = jobId;
     } catch (err) {
       stopTimer();
       pdfProgress.hidden  = true;
@@ -406,9 +438,7 @@
         _currentPdfUrl = URL.createObjectURL(await resp.blob());
         pdfIframe.src    = _currentPdfUrl;
         pdfIframe.hidden = false;
-        pdfDownloadBtn.href     = _currentPdfUrl;
-        pdfDownloadBtn.download = exportFilename.value || `report-${_activeReportId}.pdf`;
-        pdfDownloadBtn.hidden   = false;
+        pdfDownloadBtn.hidden = false;
         updateDownloadState();
         pdfCloseBtn.hidden      = false;
       } catch (err) {
