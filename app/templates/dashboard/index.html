@@ -42,14 +42,12 @@
             aria-expanded="false"
           >
             <div class="project-card__top">
-              <span class="project-card__codename">{{ project.codename }}</span>
+              <span class="project-card__client">{{ project.client.shortName or project.client.name if project.client else "—" }}</span>
               <span class="badge {% if project.complete %}badge--done{% else %}badge--active{% endif %}">
                 {{ "Complete" if project.complete else "Active" }}
               </span>
             </div>
-            {% if project.client %}
-              <span class="project-card__client">{{ project.client.shortName or project.client.name }}</span>
-            {% endif %}
+            <span class="project-card__codename">{{ project.codename }}</span>
             <div class="project-card__dates">
               {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
             </div>

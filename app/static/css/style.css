@@ -314,13 +314,13 @@ html, body {
   gap: .5rem;
 }
 
-.project-card__codename {
+.project-card__client {
   font-weight: 700;
   font-size: 1rem;
   color: var(--color-text);
 }
 
-.project-card__client {
+.project-card__codename {
   font-size: .8125rem;
   color: var(--color-muted);
 }
