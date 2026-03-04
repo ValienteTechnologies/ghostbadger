@@ -6,7 +6,7 @@
 <div class="dashboard">
 
   <nav class="drawer">
-    <span class="drawer__brand">Ghostbadger</span>
+    <img src="{{ url_for('static', filename='ghostbadger.png') }}" alt="Ghostbadger" class="drawer__logo">
     <div class="drawer__nav">
       {% if templates %}
         <p class="drawer__nav-label">Template</p>
