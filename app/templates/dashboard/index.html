@@ -23,74 +23,87 @@
     </div>
   </nav>
 
-  <main class="dashboard__main">
+  <div class="dashboard__left">
 
-    {% if error %}
-      <div class="alert alert--error">{{ error }}</div>
-    {% endif %}
+    <section class="dashboard__projects">
+      <div class="dashboard__section-header">
+        <span class="dashboard__title">Recent Projects</span>
+      </div>
 
-    <div class="dashboard__header">
-      <span class="dashboard__title">Recent Projects</span>
-    </div>
+      {% if error %}
+        <div class="alert alert--error">{{ error }}</div>
+      {% endif %}
 
-    {% if not projects and not error %}
-      <p class="empty-state">No projects found on this Ghostwriter instance.</p>
-    {% endif %}
+      {% if not projects and not error %}
+        <p class="empty-state">No projects found on this Ghostwriter instance.</p>
+      {% endif %}
 
-    <div class="project-grid">
-      {% for project in projects %}
-        {% set report = project.reports[0] if project.reports else none %}
-        <div class="project-card">
+      <div class="project-grid">
+        {% for project in projects %}
+          {% set report = project.reports[0] if project.reports else none %}
+          <div class="project-card">
 
-          <div class="project-card__meta">
-<span class="project-card__badge {% if not project.complete %}project-card__badge--active{% endif %}">
-              {{ "Complete" if project.complete else "Active" }}
-            </span>
-          </div>
-
-          <div class="project-card__client">
-            {{ project.client.shortName or project.client.name if project.client else "—" }}
-          </div>
-          <div class="project-card__codename">{{ project.codename }}</div>
-          <div class="project-card__dates">
-            {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
-          </div>
-
-          {% if report %}
-            <div class="project-card__report">
-              <div class="project-card__report-meta">
-                <span class="project-card__report-title" title="{{ report.title }}">{{ report.title }}</span>
-                <span class="report-status {% if report.complete %}report-status--complete{% else %}report-status--draft{% endif %}">
-                  {{ "Complete" if report.complete else "Draft" }}
-                </span>
-              </div>
-              <button
-                class="btn btn--primary btn--sm view-btn"
-                data-report-id="{{ report.id }}"
-              >View PDF</button>
+            <div class="project-card__meta">
+              <span class="project-card__badge {% if not project.complete %}project-card__badge--active{% endif %}">
+                {{ "Complete" if project.complete else "Active" }}
+              </span>
             </div>
-          {% else %}
-            <p class="empty-state">No reports</p>
-          {% endif %}
 
-        </div>
-      {% endfor %}
-    </div>
+            <div class="project-card__client">
+              {{ project.client.shortName or project.client.name if project.client else "—" }}
+            </div>
+            <div class="project-card__codename">{{ project.codename }}</div>
+            <div class="project-card__dates">
+              {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
+            </div>
 
-  </main>
+            {% if report %}
+              <div class="project-card__report">
+                <div class="project-card__report-meta">
+                  <span class="project-card__report-title" title="{{ report.title }}">{{ report.title }}</span>
+                  <span class="report-status {% if report.complete %}report-status--complete{% else %}report-status--draft{% endif %}">
+                    {{ "Complete" if report.complete else "Draft" }}
+                  </span>
+                </div>
+                <button
+                  class="btn btn--primary btn--sm view-btn"
+                  data-report-id="{{ report.id }}"
+                >View PDF</button>
+              </div>
+            {% else %}
+              <p class="empty-state">No reports</p>
+            {% endif %}
+
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="dashboard__passwords">
+      <div class="dashboard__section-header">
+        <span class="dashboard__title">Passwords</span>
+      </div>
+      <p class="empty-state">No password operations configured.</p>
+    </section>
+
+  </div>
 
   <!-- ── PDF Preview Panel ─────────────────────────────────── -->
-  <aside class="pdf-panel" id="pdf-panel" hidden>
+  <aside class="pdf-panel" id="pdf-panel">
 
     <div class="pdf-panel__header">
       <span class="pdf-panel__title">PDF Preview</span>
       <div class="pdf-panel__header-actions">
         <a class="btn btn--primary btn--sm" id="pdf-download-btn" hidden>Download</a>
-        <button class="btn btn--secondary btn--sm" id="pdf-close-btn">Close</button>
+        <button class="btn btn--secondary btn--sm" id="pdf-close-btn" hidden>Close</button>
       </div>
     </div>
 
-    <div class="pdf-panel__progress" id="pdf-progress">
+    <div class="pdf-panel__idle" id="pdf-idle">
+      <span class="pdf-panel__idle-text">Select a report to preview</span>
+    </div>
+
+    <div class="pdf-panel__progress" id="pdf-progress" hidden>
       <div class="pdf-panel__bar-track">
         <div class="pdf-panel__bar-fill"></div>
       </div>
@@ -127,6 +140,7 @@
   // ── PDF panel refs ─────────────────────────────────────────────
   const spinner          = document.getElementById("spinner");
   const pdfPanel         = document.getElementById("pdf-panel");
+  const pdfIdle          = document.getElementById("pdf-idle");
   const pdfProgress      = document.getElementById("pdf-progress");
   const pdfStageLabel    = document.getElementById("pdf-stage-label");
   const pdfIframe        = document.getElementById("pdf-iframe");
@@ -183,18 +197,18 @@
     stopTimer();
     if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
 
+    pdfIdle.hidden          = true;
     pdfProgress.hidden      = false;
     pdfIframe.hidden        = true;
     pdfIframe.src           = "";
     pdfDownloadBtn.hidden   = true;
+    pdfCloseBtn.hidden      = true;
     pdfStatusbar.hidden     = true;
     statusbarMsgs.innerHTML = "";
     statusbarToggle.hidden  = true;
     statusbarElapsed.textContent = "";
     statusbarStage.textContent   = "\u2014";
     pdfStageLabel.textContent    = "Starting\u2026";
-
-    pdfPanel.hidden = false;
   }
 
   function startTimer() {
@@ -227,8 +241,13 @@
     if (_activeEs) { _activeEs.close(); _activeEs = null; }
     stopTimer();
     if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
-    pdfIframe.src   = "";
-    pdfPanel.hidden = true;
+    pdfIframe.src          = "";
+    pdfIframe.hidden       = true;
+    pdfProgress.hidden     = true;
+    pdfStatusbar.hidden    = true;
+    pdfDownloadBtn.hidden  = true;
+    pdfCloseBtn.hidden     = true;
+    pdfIdle.hidden         = false;
   });
 
   statusbarToggle.addEventListener("click", () => {
@@ -252,6 +271,7 @@
         stopTimer();
         pdfProgress.hidden  = true;
         pdfStatusbar.hidden = false;
+        pdfCloseBtn.hidden  = false;
         statusbarStage.textContent = "Failed to start";
         addStatusMsg("error", body.error || "Failed to start render.");
         return;
@@ -261,6 +281,7 @@
       stopTimer();
       pdfProgress.hidden  = true;
       pdfStatusbar.hidden = false;
+      pdfCloseBtn.hidden  = false;
       statusbarStage.textContent = "Error";
       addStatusMsg("error", err.message);
       return;
@@ -302,6 +323,7 @@
 
       if (!d.success) {
         statusbarStage.textContent = `Failed after ${d.elapsed}s`;
+        pdfCloseBtn.hidden = false;
         return;
       }
 
@@ -313,6 +335,7 @@
         if (!resp.ok) {
           const body = await resp.json().catch(() => ({}));
           addStatusMsg("error", body.error || "Could not retrieve PDF.");
+          pdfCloseBtn.hidden = false;
           return;
         }
         _currentPdfUrl = URL.createObjectURL(await resp.blob());
@@ -321,8 +344,10 @@
         pdfDownloadBtn.href     = _currentPdfUrl;
         pdfDownloadBtn.download = `report-${_activeReportId}.pdf`;
         pdfDownloadBtn.hidden   = false;
+        pdfCloseBtn.hidden      = false;
       } catch (err) {
         addStatusMsg("error", "Could not display PDF: " + err.message);
+        pdfCloseBtn.hidden = false;
       }
     });
 
@@ -333,6 +358,7 @@
       stopTimer();
       pdfProgress.hidden  = true;
       pdfStatusbar.hidden = false;
+      pdfCloseBtn.hidden  = false;
       statusbarStage.textContent = "Connection lost";
       addStatusMsg("error", "SSE connection closed unexpectedly.");
     };

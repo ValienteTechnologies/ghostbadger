@@ -203,7 +203,12 @@ html, body {
 .btn--lg   { padding: .625rem 1.25rem; font-size: .875rem; font-weight: 600; }
 
 /* ── Dashboard layout ───────────────────────────────────────── */
-.dashboard { display: flex; flex-direction: row; height: 100vh; overflow: hidden; }
+.dashboard {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
 
 /* ── Sidebar / Drawer ───────────────────────────────────────── */
 .drawer {
@@ -288,20 +293,33 @@ html, body {
 
 .drawer__footer { margin-top: auto; padding-top: 1rem; }
 
-/* ── Main content ───────────────────────────────────────────── */
-.dashboard__main {
-  flex: 1;
-  padding: 2rem;
-  min-width: 0;
-  overflow-y: auto;
-  height: 100vh;
+/* ── Left pane ──────────────────────────────────────────────── */
+.dashboard__left {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.dashboard__header {
+.dashboard__projects {
+  padding: 1.5rem;
+  overflow-y: auto;
+  min-height: 0;
+  border-right: 1px solid var(--color-border-2);
+}
+
+.dashboard__section-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard__passwords {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-border-2);
+  border-right: 1px solid var(--color-border-2);
+  background: var(--color-surface);
 }
 
 .dashboard__title {
@@ -325,7 +343,7 @@ html, body {
 /* ── Project Grid ───────────────────────────────────────────── */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: .75rem;
 }
 
@@ -453,13 +471,22 @@ html, body {
 
 /* ── PDF Preview Panel ──────────────────────────────────────── */
 .pdf-panel {
-  width: 50%;
-  flex-shrink: 0;
   border-left: 1px solid var(--color-border-2);
   background: var(--color-surface);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+}
+
+.pdf-panel__idle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-panel__idle-text {
+  font-size: .875rem;
+  color: var(--color-muted);
 }
 
 .pdf-panel__header {
