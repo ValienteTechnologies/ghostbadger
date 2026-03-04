@@ -68,6 +68,7 @@
                 <button
                   class="btn btn--primary btn--sm view-btn"
                   data-report-id="{{ report.id }}"
+                  data-report-title="{{ report.title }}"
                 >View PDF</button>
               </div>
             {% else %}
@@ -90,13 +91,19 @@
         </div>
         <div class="export-field">
           <label class="export-field__label" for="export-owner-pw">Owner password</label>
-          <input class="export-field__input" type="password" id="export-owner-pw" placeholder="Optional">
+          <div class="export-field__row">
+            <input class="export-field__input" type="password" id="export-owner-pw" placeholder="Optional">
+            <button class="btn btn--secondary export-field__randomize" id="randomize-owner-pw" title="Generate password">↺</button>
+          </div>
         </div>
         <div class="export-field">
           <label class="export-field__label" for="export-user-pw">User password</label>
-          <input class="export-field__input" type="password" id="export-user-pw" placeholder="Optional">
+          <div class="export-field__row">
+            <input class="export-field__input" type="password" id="export-user-pw" placeholder="Optional">
+            <button class="btn btn--secondary export-field__randomize" id="randomize-user-pw" title="Generate password">↺</button>
+          </div>
         </div>
-        <a class="btn btn--primary btn--sm" id="pdf-download-btn" hidden>Download PDF</a>
+        <a class="btn btn--primary" id="pdf-download-btn" hidden>Download PDF</a>
       </div>
     </section>
 
@@ -150,6 +157,11 @@
 (function () {
   "use strict";
 
+  // ── Export refs ────────────────────────────────────────────────
+  const exportFilename   = document.getElementById("export-filename");
+  const exportOwnerPw    = document.getElementById("export-owner-pw");
+  const exportUserPw     = document.getElementById("export-user-pw");
+
   // ── PDF panel refs ─────────────────────────────────────────────
   const spinner          = document.getElementById("spinner");
   const pdfPanel         = document.getElementById("pdf-panel");
@@ -171,6 +183,26 @@
   let _activeEs        = null;
   let _renderTimer     = null;
   let _renderT0        = null;
+
+  // ── Export helpers ─────────────────────────────────────────────
+  function slugify(title) {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".pdf";
+  }
+
+  function randomPassword() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => chars[b % chars.length]).join("");
+  }
+
+  document.getElementById("randomize-owner-pw").addEventListener("click", () => {
+    exportOwnerPw.type  = "text";
+    exportOwnerPw.value = randomPassword();
+  });
+  document.getElementById("randomize-user-pw").addEventListener("click", () => {
+    exportUserPw.type  = "text";
+    exportUserPw.value = randomPassword();
+  });
 
   // ── Utilities ──────────────────────────────────────────────────
   function showFlash(category, msg, ttl = 5000) {
@@ -201,6 +233,9 @@
     const btn = e.target.closest(".view-btn");
     if (!btn) return;
     _activeReportId = btn.dataset.reportId;
+    if (btn.dataset.reportTitle) {
+      exportFilename.value = slugify(btn.dataset.reportTitle);
+    }
     startPdfRender();
   });
 
@@ -355,7 +390,7 @@
         pdfIframe.src    = _currentPdfUrl;
         pdfIframe.hidden = false;
         pdfDownloadBtn.href     = _currentPdfUrl;
-        pdfDownloadBtn.download = `report-${_activeReportId}.pdf`;
+        pdfDownloadBtn.download = exportFilename.value || `report-${_activeReportId}.pdf`;
         pdfDownloadBtn.hidden   = false;
         pdfCloseBtn.hidden      = false;
       } catch (err) {

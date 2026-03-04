@@ -329,15 +329,21 @@ html, body {
   letter-spacing: .05em;
 }
 
+.export-field__row {
+  display: flex;
+  gap: .375rem;
+}
+
 .export-field__input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: var(--color-bg);
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: .3125rem .5rem;
+  padding: .5rem .75rem;
   font-family: var(--font-mono);
-  font-size: .8125rem;
+  font-size: .875rem;
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
@@ -348,6 +354,13 @@ html, body {
 }
 
 .export-field__input::placeholder { color: var(--color-muted); opacity: .6; }
+
+.export-field__randomize {
+  flex-shrink: 0;
+  padding: .5rem .625rem;
+  font-size: 1rem;
+  line-height: 1;
+}
 
 .dashboard__title {
   font-size: .875rem;
