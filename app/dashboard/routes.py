@@ -8,7 +8,7 @@ from ..extensions import csrf
 from ..ghostwriter import GhostwriterClient, GhostwriterError
 from ..reporting import get_available_templates
 from ..reporting.evidence import sync_evidence
-from ..services.rendering import render_report
+from ..rendering import render_report
 from . import bp
 
 # In-memory cache of the last generated JSON per report_id.

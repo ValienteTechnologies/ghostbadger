@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ...reporting import ReportTemplate
-from ...reporting.evidence import collect_paths, local_path
+from ..reporting import ReportTemplate
+from ..reporting.evidence import collect_paths, local_path
 
 
 def build(template: ReportTemplate, report_json: dict) -> dict[str, bytes]:

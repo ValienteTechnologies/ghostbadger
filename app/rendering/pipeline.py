@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ...reporting import ReportTemplate
+from ..reporting import ReportTemplate
 from .chromium import render_to_html
 from .resources import build
 from .weasyprint import render_to_pdf
 
-_BUNDLE = Path(__file__).parents[3] / "packages" / "rendering" / "dist" / "bundle.js"
+_BUNDLE = Path(__file__).parents[2] / "packages" / "rendering" / "dist" / "bundle.js"
 
 _SEVERITY: dict[str, tuple[int, str]] = {
     "critical":      (1, "critical"),
