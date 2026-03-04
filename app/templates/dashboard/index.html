@@ -43,8 +43,7 @@
         <div class="project-card">
 
           <div class="project-card__meta">
-            <span class="status-dot {% if project.complete %}status-dot--done{% else %}status-dot--active{% endif %}"></span>
-            <span class="project-card__badge {% if not project.complete %}project-card__badge--active{% endif %}">
+<span class="project-card__badge {% if not project.complete %}project-card__badge--active{% endif %}">
               {{ "Complete" if project.complete else "Active" }}
             </span>
           </div>
