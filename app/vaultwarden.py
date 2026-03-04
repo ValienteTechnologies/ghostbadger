@@ -17,9 +17,9 @@ from pathlib import Path
 from flask import current_app, session
 
 _PROJECT_ROOT = Path(__file__).parent.parent
-_LOCAL_BW     = _PROJECT_ROOT / "packages" / "bw" / "node_modules" / ".bin" / "bw"
+_LOCAL_BW     = _PROJECT_ROOT / "packages" / "bitwarden" / "node_modules" / ".bin" / "bw"
 # bw config is stored here so it doesn't touch any global ~/.config/Bitwarden CLI
-_BW_APPDATA   = _PROJECT_ROOT / "packages" / "bw" / ".bw-appdata"
+_BW_APPDATA   = _PROJECT_ROOT / "packages" / "bitwarden" / ".bw-appdata"
 
 
 def _bw_cmd() -> str:
