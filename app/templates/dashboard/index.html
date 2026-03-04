@@ -68,7 +68,10 @@
     <section class="report-viewer" id="report-viewer" hidden>
       <div class="report-viewer__header">
         <h2 class="section-title">Report Data</h2>
-        <button class="btn btn--secondary btn--sm" id="close-viewer">Close</button>
+        <div class="report-viewer__actions">
+          <button class="btn btn--primary btn--sm" id="render-btn">Render PDF</button>
+          <button class="btn btn--secondary btn--sm" id="close-viewer">Close</button>
+        </div>
       </div>
       <div id="evidence-status" class="evidence-status"></div>
       <pre class="json-block" id="report-json"></pre>
@@ -96,6 +99,9 @@
   const jsonBlock      = document.getElementById("report-json");
   const closeViewer    = document.getElementById("close-viewer");
   const evidenceStatus = document.getElementById("evidence-status");
+  const renderBtn      = document.getElementById("render-btn");
+
+  let _activeReportId = null;
 
   function showSpinner() { spinner.hidden = false; }
   function hideSpinner() { spinner.hidden = true; }
@@ -182,6 +188,7 @@
 
   // ── Generate report mutation ───────────────────────────────────
   async function generateReport(reportId) {
+    _activeReportId = reportId;
     showSpinner();
     viewer.hidden = true;
 
@@ -222,11 +229,40 @@
     }
   }
 
+  // ── Render PDF ─────────────────────────────────────────────────
+  renderBtn.addEventListener("click", async () => {
+    if (!_activeReportId) return;
+    showSpinner();
+    try {
+      const resp = await fetch(`/dashboard/api/report/${_activeReportId}/render`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      hideSpinner();
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showError(body.error || "Rendering failed.");
+        return;
+      }
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `report-${_activeReportId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      hideSpinner();
+      showError("Rendering failed: " + err.message);
+    }
+  });
+
   // ── Close viewer ───────────────────────────────────────────────
   closeViewer.addEventListener("click", () => {
     viewer.hidden = true;
     jsonBlock.textContent = "";
     evidenceStatus.textContent = "";
+    _activeReportId = null;
   });
 
   // ── Template selector ──────────────────────────────────────────

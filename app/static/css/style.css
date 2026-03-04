@@ -394,6 +394,11 @@ html, body {
   margin-bottom: 1rem;
 }
 
+.report-viewer__actions {
+  display: flex;
+  gap: .5rem;
+}
+
 .json-block {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
