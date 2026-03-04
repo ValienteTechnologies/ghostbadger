@@ -5,10 +5,11 @@
 {% block content %}
 <div class="dashboard">
 
-  <header class="dashboard__header">
-    <span class="dashboard__brand">Ghostbadger</span>
+  <nav class="drawer">
+    <span class="drawer__brand">Ghostbadger</span>
+    <div class="drawer__nav"></div>
     <a class="btn btn--secondary btn--sm" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
-  </header>
+  </nav>
 
   <main class="dashboard__main">
 
