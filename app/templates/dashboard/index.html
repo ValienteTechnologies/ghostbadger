@@ -81,9 +81,23 @@
 
     <section class="dashboard__passwords">
       <div class="dashboard__section-header">
-        <span class="dashboard__title">Passwords</span>
+        <span class="dashboard__title">Export</span>
       </div>
-      <p class="empty-state">No password operations configured.</p>
+      <div class="export-fields">
+        <div class="export-field">
+          <label class="export-field__label" for="export-filename">Filename</label>
+          <input class="export-field__input" type="text" id="export-filename" placeholder="report.pdf">
+        </div>
+        <div class="export-field">
+          <label class="export-field__label" for="export-owner-pw">Owner password</label>
+          <input class="export-field__input" type="password" id="export-owner-pw" placeholder="Optional">
+        </div>
+        <div class="export-field">
+          <label class="export-field__label" for="export-user-pw">User password</label>
+          <input class="export-field__input" type="password" id="export-user-pw" placeholder="Optional">
+        </div>
+        <a class="btn btn--primary btn--sm" id="pdf-download-btn" hidden>Download PDF</a>
+      </div>
     </section>
 
   </div>
@@ -94,7 +108,6 @@
     <div class="pdf-panel__header">
       <span class="pdf-panel__title">PDF Preview</span>
       <div class="pdf-panel__header-actions">
-        <a class="btn btn--primary btn--sm" id="pdf-download-btn" hidden>Download</a>
         <button class="btn btn--secondary btn--sm" id="pdf-close-btn" hidden>Close</button>
       </div>
     </div>
