@@ -72,26 +72,29 @@ def test_project_reports_api_error(auth_client):
     assert resp.status_code == 502
 
 
-def test_generate_report_decodes_base64(auth_client):
-    payload = {"client": "Acme", "findings": []}
-    encoded = base64.b64encode(json.dumps(payload).encode()).decode()
+def test_view_report_starts_job(auth_client):
+    """POST /view with a selected template returns 202 with a job_id."""
+    with auth_client.session_transaction() as sess:
+        sess["selected_template"] = "testing"
 
-    with patch("app.dashboard.routes.GhostwriterClient") as MockClient:
-        MockClient.return_value.generate_report.return_value = encoded
-        resp = auth_client.post("/dashboard/api/report/10/generate")
+    with patch("app.dashboard.routes.get_available_templates") as mock_tpl, \
+         patch("app.dashboard.routes.threading.Thread"):
+        tpl = MagicMock()
+        tpl.name = "testing"
+        mock_tpl.return_value = [tpl]
+        resp = auth_client.post("/dashboard/api/report/10/view")
 
-    assert resp.status_code == 200
+    assert resp.status_code == 202
     body = resp.get_json()
-    assert body["data"]["client"] == "Acme"
+    assert "job_id" in body
 
 
-def test_generate_report_gql_error(auth_client):
-    with patch("app.dashboard.routes.GhostwriterClient") as MockClient:
-        MockClient.return_value.generate_report.side_effect = GhostwriterError("not found")
-        resp = auth_client.post("/dashboard/api/report/10/generate")
-    assert resp.status_code == 502
+def test_view_report_no_template(auth_client):
+    """POST /view without a selected template returns 400."""
+    resp = auth_client.post("/dashboard/api/report/10/view")
+    assert resp.status_code == 400
 
 
-def test_generate_report_requires_session(app):
-    resp = app.test_client().post("/dashboard/api/report/10/generate")
+def test_view_report_requires_session(app):
+    resp = app.test_client().post("/dashboard/api/report/10/view")
     assert resp.status_code == 302

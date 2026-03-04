@@ -19,7 +19,6 @@ from ..rendering.resources import build
 from ..rendering.weasyprint import render_to_pdf
 from . import bp
 
-_report_cache: dict[int, dict] = {}
 _render_jobs:  dict[str, dict] = {}
 
 
@@ -73,41 +72,12 @@ def project_reports(project_id: int):
         return jsonify({"error": str(exc)}), 502
 
 
-@bp.route("/api/report/<int:report_id>/generate", methods=["POST"])
+# ── Combined view endpoint ─────────────────────────────────────────────────────
+
+@bp.route("/api/report/<int:report_id>/view", methods=["POST"])
 @csrf.exempt
 @require_token
-def generate_report(report_id: int):
-    try:
-        client = _client()
-        raw_b64 = client.generate_report(report_id)
-        decoded = base64.b64decode(raw_b64).decode("utf-8")
-        report_json = _json.loads(decoded)
-
-        evidence_results = sync_evidence(report_json, client)
-        fetched = sum(1 for ok in evidence_results.values() if ok)
-        failed  = sum(1 for ok in evidence_results.values() if not ok)
-
-        _report_cache[report_id] = report_json
-
-        return jsonify({
-            "data": report_json,
-            "evidence": {"fetched": fetched, "failed": failed},
-        })
-    except GhostwriterError as exc:
-        return jsonify({"error": str(exc)}), 502
-    except Exception as exc:
-        return jsonify({"error": f"Failed to decode report data: {exc}"}), 500
-
-
-# ── Async render endpoints ─────────────────────────────────────────────────────
-
-@bp.route("/api/report/<int:report_id>/render", methods=["POST"])
-@csrf.exempt
-@require_token
-def render_report_pdf(report_id: int):
-    if report_id not in _report_cache:
-        return jsonify({"error": "Generate the report first."}), 400
-
+def view_report_pdf(report_id: int):
     template_name = session.get("selected_template")
     if not template_name:
         return jsonify({"error": "No template selected."}), 400
@@ -117,19 +87,23 @@ def render_report_pdf(report_id: int):
     if not template:
         return jsonify({"error": f"Template '{template_name}' not found."}), 400
 
+    # Capture the Ghostwriter URL + token while we're still in request context
+    gw_url   = current_app.config["GHOSTWRITER_URL"]
+    gw_token = session["gw_token"]
+
     job_id = str(uuid.uuid4())
     _render_jobs[job_id] = {"q": queue.Queue(), "pdf": None, "error": None, "done": False}
 
     threading.Thread(
-        target=_run_render,
-        args=(job_id, _report_cache[report_id], template),
+        target=_run_view,
+        args=(job_id, report_id, template, gw_url, gw_token),
         daemon=True,
     ).start()
 
     return jsonify({"job_id": job_id}), 202
 
 
-def _run_render(job_id: str, report_json: dict, template) -> None:
+def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str) -> None:
     job = _render_jobs[job_id]
     q   = job["q"]
     t0  = time.monotonic()
@@ -138,7 +112,23 @@ def _run_render(job_id: str, report_json: dict, template) -> None:
         q.put((event, data))
 
     try:
-        # ── Stage 1: Chromium ──────────────────────────────────────
+        # ── Stage 1: Generate report JSON ─────────────────────────
+        emit("stage", {"stage": "generate", "label": "Fetching report data…"})
+
+        client = GhostwriterClient(base_url=gw_url, token=gw_token)
+        raw_b64     = client.generate_report(report_id)
+        decoded     = base64.b64decode(raw_b64).decode("utf-8")
+        report_json = _json.loads(decoded)
+
+        # ── Stage 2: Evidence ──────────────────────────────────────
+        emit("stage", {"stage": "evidence", "label": "Fetching evidence…"})
+
+        evidence_results = sync_evidence(report_json, client)
+        fetched = sum(1 for ok in evidence_results.values() if ok)
+        failed  = sum(1 for ok in evidence_results.values() if not ok)
+        emit("evidence", {"fetched": fetched, "failed": failed})
+
+        # ── Stage 3: Chromium ──────────────────────────────────────
         emit("stage", {"stage": "chromium", "label": "Rendering template…"})
 
         if not BUNDLE.exists():
@@ -152,13 +142,12 @@ def _run_render(job_id: str, report_json: dict, template) -> None:
 
         html = render_to_html(vue_data, template_html, css, bundle_js, "tr", resources)
 
-        # ── Stage 2: WeasyPrint ────────────────────────────────────
+        # ── Stage 4: WeasyPrint ────────────────────────────────────
         emit("stage", {"stage": "weasyprint", "label": "Generating PDF…"})
 
         class _WpHandler(logging.Handler):
             def emit(self, record: logging.LogRecord) -> None:  # type: ignore[override]
                 msg = record.getMessage()
-                # Skip CSS compatibility noise: "Ignored `xxx` at y:z, ..."
                 if msg.startswith("Ignored ") and " at " in msg:
                     return
                 level = "error" if record.levelno >= logging.ERROR else "warning"

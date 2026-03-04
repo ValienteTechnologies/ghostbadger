@@ -18,7 +18,9 @@
         {% endfor %}
       {% endif %}
     </div>
-    <a class="btn btn--secondary btn--sm" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
+    <div class="drawer__footer">
+      <a class="btn btn--ghost btn--sm btn--full" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
+    </div>
   </nav>
 
   <main class="dashboard__main">
@@ -27,60 +29,54 @@
       <div class="alert alert--error">{{ error }}</div>
     {% endif %}
 
-    <section class="projects">
-      <h2 class="section-title">Recent Projects</h2>
+    <div class="dashboard__header">
+      <span class="dashboard__title">Recent Projects</span>
+    </div>
 
-      {% if not projects and not error %}
-        <p class="empty-state">No projects found on this Ghostwriter instance.</p>
-      {% endif %}
+    {% if not projects and not error %}
+      <p class="empty-state">No projects found on this Ghostwriter instance.</p>
+    {% endif %}
 
-      <div class="project-grid">
-        {% for project in projects %}
-          {% set report = project.reports[0] if project.reports else none %}
-          <div class="project-card">
+    <div class="project-grid">
+      {% for project in projects %}
+        {% set report = project.reports[0] if project.reports else none %}
+        <div class="project-card">
 
-            <div class="project-card__top">
-              <span class="project-card__client">
-                {{ project.client.shortName or project.client.name if project.client else "—" }}
-              </span>
-              <span class="badge {% if project.complete %}badge--done{% else %}badge--active{% endif %}">
-                {{ "Complete" if project.complete else "Active" }}
-              </span>
-            </div>
-            <span class="project-card__codename">{{ project.codename }}</span>
-            <div class="project-card__dates">
-              {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
-            </div>
-
-            {% if report %}
-              <div class="project-card__report">
-                <div class="project-card__report-row">
-                  <span class="project-card__report-title" title="{{ report.title }}">{{ report.title }}</span>
-                  <span class="badge {% if report.complete %}badge--done{% else %}badge--active{% endif %}">
-                    {{ "Complete" if report.complete else "Draft" }}
-                  </span>
-                </div>
-                <div class="project-card__actions">
-                  <button
-                    class="btn btn--primary btn--sm generate-btn"
-                    data-report-id="{{ report.id }}"
-                  >Generate</button>
-                  <button
-                    class="btn btn--primary btn--sm render-btn"
-                    data-report-id="{{ report.id }}"
-                    hidden
-                  >Render PDF</button>
-                  <span class="evidence-status" data-evidence hidden></span>
-                </div>
-              </div>
-            {% else %}
-              <p class="empty-state" style="padding-top:.5rem;">No reports</p>
-            {% endif %}
-
+          <div class="project-card__meta">
+            <span class="status-dot {% if project.complete %}status-dot--done{% else %}status-dot--active{% endif %}"></span>
+            <span class="project-card__badge {% if not project.complete %}project-card__badge--active{% endif %}">
+              {{ "Complete" if project.complete else "Active" }}
+            </span>
           </div>
-        {% endfor %}
-      </div>
-    </section>
+
+          <div class="project-card__client">
+            {{ project.client.shortName or project.client.name if project.client else "—" }}
+          </div>
+          <div class="project-card__codename">{{ project.codename }}</div>
+          <div class="project-card__dates">
+            {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
+          </div>
+
+          {% if report %}
+            <div class="project-card__report">
+              <div class="project-card__report-meta">
+                <span class="project-card__report-title" title="{{ report.title }}">{{ report.title }}</span>
+                <span class="report-status {% if report.complete %}report-status--complete{% else %}report-status--draft{% endif %}">
+                  {{ "Complete" if report.complete else "Draft" }}
+                </span>
+              </div>
+              <button
+                class="btn btn--primary btn--sm view-btn"
+                data-report-id="{{ report.id }}"
+              >View PDF</button>
+            </div>
+          {% else %}
+            <p class="empty-state">No reports</p>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    </div>
 
   </main>
 
@@ -117,6 +113,12 @@
 
 </div>
 
+<!-- ── Evidence toast ─────────────────────────────────────── -->
+<div class="toast" id="evidence-toast" hidden>
+  <span class="toast__text" id="evidence-toast-text"></span>
+  <button class="toast__close" id="evidence-toast-close" title="Dismiss">✕</button>
+</div>
+
 <div class="spinner-overlay" id="spinner" hidden>
   <div class="spinner"></div>
 </div>
@@ -140,17 +142,18 @@
   const statusbarElapsed = document.getElementById("statusbar-elapsed");
   const statusbarToggle  = document.getElementById("statusbar-toggle");
   const statusbarMsgs    = document.getElementById("statusbar-msgs");
+  const evidenceToast    = document.getElementById("evidence-toast");
+  const evidenceToastTxt = document.getElementById("evidence-toast-text");
+  const evidenceToastX   = document.getElementById("evidence-toast-close");
 
-  let _activeReportId = null;
-  let _currentPdfUrl  = null;
-  let _activeEs       = null;
-  let _renderTimer    = null;
-  let _renderT0       = null;
+  let _activeReportId  = null;
+  let _currentPdfUrl   = null;
+  let _activeEs        = null;
+  let _renderTimer     = null;
+  let _renderT0        = null;
+  let _toastTimeout    = null;
 
   // ── Utilities ──────────────────────────────────────────────────
-  function showSpinner() { spinner.hidden = false; }
-  function hideSpinner() { spinner.hidden = true; }
-
   function showError(msg) {
     const el = document.createElement("div");
     el.className = "alert alert--error";
@@ -159,53 +162,31 @@
     setTimeout(() => el.remove(), 6000);
   }
 
-  function setEvidenceStatus(el, ev) {
-    if (!ev) { el.hidden = true; return; }
-    const total = ev.fetched + ev.failed;
-    el.hidden = false;
+  function showEvidenceToast(fetched, failed) {
+    clearTimeout(_toastTimeout);
+    const total = fetched + failed;
     if (total === 0) {
-      el.textContent = "No evidence files";
-      el.className = "evidence-status";
-    } else if (ev.failed === 0) {
-      el.textContent = `${ev.fetched} evidence file${ev.fetched !== 1 ? "s" : ""}`;
-      el.className = "evidence-status evidence-status--ok";
+      evidenceToastTxt.innerHTML = "No evidence files attached";
+    } else if (failed === 0) {
+      evidenceToastTxt.innerHTML =
+        `<span class="toast__ok">✓</span> ${fetched} evidence file${fetched !== 1 ? "s" : ""} loaded`;
     } else {
-      el.textContent = `Evidence: ${ev.fetched} ok, ${ev.failed} failed`;
-      el.className = "evidence-status evidence-status--warn";
+      evidenceToastTxt.innerHTML =
+        `<span class="toast__ok">✓</span> ${fetched} ok &nbsp;` +
+        `<span class="toast__warn">⚠ ${failed} failed</span>`;
     }
+    evidenceToast.hidden = false;
+    _toastTimeout = setTimeout(() => { evidenceToast.hidden = true; }, 5000);
   }
 
-  // ── Generate (event delegation on all .generate-btn) ──────────
-  document.addEventListener("click", async (e) => {
-    const btn = e.target.closest(".generate-btn");
-    if (!btn) return;
-
-    const reportId   = btn.dataset.reportId;
-    const card       = btn.closest(".project-card");
-    const renderBtn  = card.querySelector(".render-btn");
-    const evidenceEl = card.querySelector("[data-evidence]");
-
-    showSpinner();
-    try {
-      const resp = await fetch(`/dashboard/api/report/${reportId}/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const body = await resp.json();
-      hideSpinner();
-      if (body.error) { showError(body.error); return; }
-
-      setEvidenceStatus(evidenceEl, body.evidence);
-      renderBtn.hidden = false;
-    } catch (err) {
-      hideSpinner();
-      showError("Failed to generate: " + err.message);
-    }
+  evidenceToastX.addEventListener("click", () => {
+    clearTimeout(_toastTimeout);
+    evidenceToast.hidden = true;
   });
 
-  // ── Render PDF (event delegation on all .render-btn) ──────────
+  // ── View PDF (event delegation on all .view-btn) ───────────────
   document.addEventListener("click", (e) => {
-    const btn = e.target.closest(".render-btn");
+    const btn = e.target.closest(".view-btn");
     if (!btn) return;
     _activeReportId = btn.dataset.reportId;
     startPdfRender();
@@ -277,7 +258,7 @@
 
     let jobId;
     try {
-      const resp = await fetch(`/dashboard/api/report/${_activeReportId}/render`, {
+      const resp = await fetch(`/dashboard/api/report/${_activeReportId}/view`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -309,6 +290,11 @@
       pdfStatusbar.hidden        = false;
       statusbarStage.textContent = d.label;
       addStatusMsg("info", d.label);
+    });
+
+    es.addEventListener("evidence", (e) => {
+      const d = JSON.parse(e.data);
+      showEvidenceToast(d.fetched, d.failed);
     });
 
     es.addEventListener("message", (e) => {
