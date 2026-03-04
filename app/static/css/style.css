@@ -192,7 +192,7 @@ html, body {
 .btn--sm   { padding: .375rem .75rem; font-size: .8125rem; }
 
 /* ── Dashboard ──────────────────────────────────────────────── */
-.dashboard { display: flex; flex-direction: row; min-height: 100vh; }
+.dashboard { display: flex; flex-direction: row; height: 100vh; overflow: hidden; }
 
 .drawer {
   width: 220px;
@@ -252,8 +252,9 @@ html, body {
 .dashboard__main {
   flex: 1;
   padding: 2rem 1.5rem;
-  max-width: 960px;
   min-width: 0;
+  overflow-y: auto;
+  height: 100vh;
 }
 
 /* ── Section ────────────────────────────────────────────────── */
@@ -441,3 +442,143 @@ html, body {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PDF Preview Panel ──────────────────────────────────────── */
+.pdf-panel {
+  width: 50%;
+  flex-shrink: 0;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.pdf-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  gap: .75rem;
+}
+
+.pdf-panel__title {
+  font-size: .8125rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  flex: 1;
+}
+
+.pdf-panel__header-actions {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+/* ── Progress (shown while rendering) ──────────────────────── */
+.pdf-panel__progress {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 2rem;
+}
+
+.pdf-panel__bar-track {
+  width: 100%;
+  max-width: 320px;
+  height: 3px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pdf-panel__bar-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--color-accent);
+  transform-origin: left center;
+  animation: bar-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes bar-sweep {
+  0%   { transform: scaleX(0) translateX(0); }
+  50%  { transform: scaleX(.55) translateX(90%); }
+  100% { transform: scaleX(0) translateX(220%); }
+}
+
+.pdf-panel__stage-label {
+  font-size: .875rem;
+  color: var(--color-muted);
+}
+
+/* ── Iframe (shown when PDF is ready) ───────────────────────── */
+.pdf-panel__iframe {
+  flex: 1;
+  border: none;
+  width: 100%;
+  min-height: 0;
+  background: #525659;
+}
+
+/* ── Status bar ─────────────────────────────────────────────── */
+.pdf-panel__statusbar {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border);
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.statusbar__summary {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .5rem .75rem;
+  font-size: .75rem;
+  color: var(--color-muted);
+  cursor: default;
+}
+
+.statusbar__elapsed {
+  font-family: var(--font-mono);
+  color: var(--color-success);
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.statusbar__toggle {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: .75rem;
+  padding: 0 .25rem;
+  line-height: 1;
+}
+.statusbar__toggle:hover { color: var(--color-text); }
+
+.statusbar__msgs {
+  border-top: 1px solid var(--color-border);
+  padding: .375rem .75rem .5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.statusbar__msg {
+  font-size: .7375rem;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.statusbar__msg--error   { color: var(--color-error); }
+.statusbar__msg--warning { color: var(--color-warning); }
+.statusbar__msg--info    { color: var(--color-muted); }

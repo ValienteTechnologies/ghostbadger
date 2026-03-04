@@ -8,7 +8,7 @@ from .chromium import render_to_html
 from .resources import build
 from .weasyprint import render_to_pdf
 
-_BUNDLE = Path(__file__).parents[2] / "packages" / "rendering" / "dist" / "bundle.js"
+BUNDLE = Path(__file__).parents[2] / "packages" / "rendering" / "dist" / "bundle.js"
 
 _SEVERITY: dict[str, tuple[int, str]] = {
     "critical":      (1, "critical"),
@@ -20,7 +20,7 @@ _SEVERITY: dict[str, tuple[int, str]] = {
 }
 
 
-def _make_vue_data(raw: dict) -> dict:
+def make_vue_data(raw: dict) -> dict:
     """Reshape raw Ghostwriter JSON into the three top-level variables the
     SysReptor rendering bundle exposes to templates: report, finding_groups,
     pentesters.
@@ -61,16 +61,16 @@ def render_report(
     language: str = "tr",
 ) -> bytes:
     """Full pipeline: Ghostwriter JSON → Vue data → HTML → PDF."""
-    if not _BUNDLE.exists():
+    if not BUNDLE.exists():
         raise FileNotFoundError(
-            f"Vue rendering bundle not found at {_BUNDLE}. "
+            f"Vue rendering bundle not found at {BUNDLE}. "
             "Run: cd packages/rendering && npm install && npm run build"
         )
 
-    data          = _make_vue_data(report_json)
+    data          = make_vue_data(report_json)
     template_html = template.html_path.read_text("utf-8")
     css           = template.css_path.read_text("utf-8") if template.css_path.exists() else None
-    bundle_js     = _BUNDLE.read_text("utf-8")
+    bundle_js     = BUNDLE.read_text("utf-8")
     resources     = build(template, report_json)
 
     html = render_to_html(data, template_html, css, bundle_js, language, resources)
