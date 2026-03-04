@@ -39,7 +39,7 @@
           <p id="token-error" class="field__error" role="alert">{{ error }}</p>
         {% endif %}
         <p id="token-hint" class="field__hint">
-          Generate a token in Ghostwriter under <strong>Settings → API Tokens</strong>.
+          {% if token_create_url %}<a href="{{ token_create_url }}" target="_blank" rel="noopener">Generate a Ghostwriter API token</a>.{% else %}Generate a token in Ghostwriter under <strong>Settings → API Tokens</strong>.{% endif %}
         </p>
       </div>
 

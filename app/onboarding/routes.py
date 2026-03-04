@@ -1,4 +1,4 @@
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import current_app, flash, redirect, render_template, request, session, url_for
 
 from ..auth import clear_token, validate_jwt_format
 from . import bp
@@ -21,7 +21,9 @@ def index():
             flash("Connected to Ghostwriter successfully.", "success")
             return redirect(url_for("dashboard.index"))
 
-    return render_template("onboarding/index.html", error=error)
+    gw_url = current_app.config.get("GHOSTWRITER_URL", "").rstrip("/")
+    token_create_url = f"{gw_url}/api/token/create" if gw_url else None
+    return render_template("onboarding/index.html", error=error, token_create_url=token_create_url)
 
 
 @bp.route("/logout")
