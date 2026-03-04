@@ -7,6 +7,7 @@ from ..auth import require_token
 from ..extensions import csrf
 from ..ghostwriter import GhostwriterClient, GhostwriterError
 from ..reporting import get_available_templates
+from ..reporting.evidence import sync_evidence
 from . import bp
 
 
@@ -65,10 +66,19 @@ def project_reports(project_id: int):
 @require_token
 def generate_report(report_id: int):
     try:
-        raw_b64 = _client().generate_report(report_id)
+        client = _client()
+        raw_b64 = client.generate_report(report_id)
         decoded = base64.b64decode(raw_b64).decode("utf-8")
         report_json = json.loads(decoded)
-        return jsonify({"data": report_json})
+
+        evidence_results = sync_evidence(report_json, client)
+        fetched = sum(1 for ok in evidence_results.values() if ok)
+        failed  = sum(1 for ok in evidence_results.values() if not ok)
+
+        return jsonify({
+            "data": report_json,
+            "evidence": {"fetched": fetched, "failed": failed},
+        })
     except GhostwriterError as exc:
         return jsonify({"error": str(exc)}), 502
     except Exception as exc:

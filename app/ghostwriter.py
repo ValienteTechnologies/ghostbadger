@@ -44,7 +44,8 @@ class GhostwriterError(Exception):
 
 class GhostwriterClient:
     def __init__(self, base_url: str, token: str):
-        self._url = base_url.rstrip("/") + _GRAPHQL_PATH
+        self._base_url = base_url.rstrip("/")
+        self._url = self._base_url + _GRAPHQL_PATH
         self._headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -81,3 +82,13 @@ class GhostwriterClient:
         """Return the raw base64-encoded reportData string."""
         data = self._gql(_GENERATE_REPORT_MUTATION, {"id": report_id})
         return data["generateReport"]["reportData"]
+
+    def fetch_evidence(self, path: str) -> bytes:
+        """Fetch a binary evidence file. path is relative, e.g. 'evidence/2/foo.png'."""
+        url = f"{self._base_url}/{path.lstrip('/')}"
+        try:
+            resp = requests.get(url, headers=self._headers, timeout=(5, 30))
+            resp.raise_for_status()
+            return resp.content
+        except requests.RequestException as exc:
+            raise GhostwriterError(f"Failed to fetch evidence {path}: {exc}") from exc
