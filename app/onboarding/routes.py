@@ -12,10 +12,12 @@ def index():
     error = None
     if request.method == "POST":
         token = request.form.get("token", "").strip()
-        valid, error = validate_jwt_format(token)
+        valid, error, exp = validate_jwt_format(token)
         if valid:
             session.permanent = True
             session["gw_token"] = token
+            if exp is not None:
+                session["gw_token_exp"] = exp
             flash("Connected to Ghostwriter successfully.", "success")
             return redirect(url_for("dashboard.index"))
 
