@@ -92,14 +92,14 @@
         <div class="export-field">
           <label class="export-field__label" for="export-owner-pw">Owner password</label>
           <div class="export-field__row">
-            <input class="export-field__input" type="password" id="export-owner-pw" placeholder="Optional">
+            <input class="export-field__input" type="password" id="export-owner-pw" placeholder="Required">
             <button class="btn btn--secondary export-field__randomize" id="randomize-owner-pw" title="Generate password">↺</button>
           </div>
         </div>
         <div class="export-field">
           <label class="export-field__label" for="export-user-pw">User password</label>
           <div class="export-field__row">
-            <input class="export-field__input" type="password" id="export-user-pw" placeholder="Optional">
+            <input class="export-field__input" type="password" id="export-user-pw" placeholder="Required">
             <button class="btn btn--secondary export-field__randomize" id="randomize-user-pw" title="Generate password">↺</button>
           </div>
         </div>
@@ -195,13 +195,23 @@
       .map(b => chars[b % chars.length]).join("");
   }
 
+  function updateDownloadState() {
+    const ready = exportOwnerPw.value.trim() && exportUserPw.value.trim();
+    pdfDownloadBtn.classList.toggle("btn--disabled", !ready);
+  }
+
+  exportOwnerPw.addEventListener("input", updateDownloadState);
+  exportUserPw.addEventListener("input", updateDownloadState);
+
   document.getElementById("randomize-owner-pw").addEventListener("click", () => {
     exportOwnerPw.type  = "text";
     exportOwnerPw.value = randomPassword();
+    updateDownloadState();
   });
   document.getElementById("randomize-user-pw").addEventListener("click", () => {
     exportUserPw.type  = "text";
     exportUserPw.value = randomPassword();
+    updateDownloadState();
   });
 
   // ── Utilities ──────────────────────────────────────────────────
@@ -284,6 +294,13 @@
     }
     statusbarMsgs.scrollTop = statusbarMsgs.scrollHeight;
   }
+
+  pdfDownloadBtn.addEventListener("click", (e) => {
+    if (!exportOwnerPw.value.trim() || !exportUserPw.value.trim()) {
+      e.preventDefault();
+      showFlash("error", "Both owner and user passwords are required to download.");
+    }
+  });
 
   pdfCloseBtn.addEventListener("click", () => {
     if (_activeEs) { _activeEs.close(); _activeEs = null; }
@@ -392,6 +409,7 @@
         pdfDownloadBtn.href     = _currentPdfUrl;
         pdfDownloadBtn.download = exportFilename.value || `report-${_activeReportId}.pdf`;
         pdfDownloadBtn.hidden   = false;
+        updateDownloadState();
         pdfCloseBtn.hidden      = false;
       } catch (err) {
         addStatusMsg("error", "Could not display PDF: " + err.message);
