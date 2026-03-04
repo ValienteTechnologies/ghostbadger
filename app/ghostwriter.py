@@ -85,7 +85,7 @@ class GhostwriterClient:
 
     def fetch_evidence(self, path: str) -> bytes:
         """Fetch a binary evidence file. path is relative, e.g. 'evidence/2/foo.png'."""
-        url = f"{self._base_url}/{path.lstrip('/')}"
+        url = f"{self._base_url}/media/{path.lstrip('/')}"
         try:
             resp = requests.get(url, headers=self._headers, timeout=(5, 30))
             resp.raise_for_status()
