@@ -13,9 +13,9 @@ def local_path(evidence_path: str) -> Path:
     """Return the local filesystem path for a given evidence path string.
 
     evidence_path is relative, e.g. 'evidence/2/adminpanel.png'.
-    Result: <_EVIDENCE_DIR>/evidence/2/adminpanel.png
+    Result: <_EVIDENCE_DIR>/2/adminpanel.png  (strips leading 'evidence/')
     """
-    return _EVIDENCE_DIR / evidence_path
+    return _EVIDENCE_DIR / Path(evidence_path).relative_to("evidence")
 
 
 def _collect_paths(obj: object) -> set[str]:

@@ -377,6 +377,15 @@ html, body {
   text-overflow: ellipsis;
 }
 
+/* ── Evidence status ────────────────────────────────────────── */
+.evidence-status {
+  font-size: .8125rem;
+  margin-bottom: .75rem;
+  color: var(--color-muted);
+}
+.evidence-status--ok   { color: var(--color-success); }
+.evidence-status--warn { color: var(--color-warning); }
+
 /* ── Report JSON viewer ─────────────────────────────────────── */
 .report-viewer__header {
   display: flex;

@@ -72,6 +72,7 @@
         <h2 class="section-title">Report Data</h2>
         <button class="btn btn--secondary btn--sm" id="close-viewer">Close</button>
       </div>
+      <div id="evidence-status" class="evidence-status"></div>
       <pre class="json-block" id="report-json"></pre>
     </section>
 
@@ -93,9 +94,10 @@
   const reportsPanel = document.getElementById("reports-panel");
   const reportsList  = document.getElementById("reports-list");
   const panelTitle   = document.getElementById("reports-panel-project");
-  const viewer       = document.getElementById("report-viewer");
-  const jsonBlock    = document.getElementById("report-json");
-  const closeViewer  = document.getElementById("close-viewer");
+  const viewer         = document.getElementById("report-viewer");
+  const jsonBlock      = document.getElementById("report-json");
+  const closeViewer    = document.getElementById("close-viewer");
+  const evidenceStatus = document.getElementById("evidence-status");
 
   function showSpinner() { spinner.hidden = false; }
   function hideSpinner() { spinner.hidden = true; }
@@ -196,6 +198,7 @@
       if (body.error) { showError(body.error); return; }
 
       jsonBlock.textContent = JSON.stringify(body.data, null, 2);
+      setEvidenceStatus(body.evidence);
       viewer.hidden = false;
       viewer.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -205,10 +208,27 @@
     }
   }
 
+  // ── Evidence status ────────────────────────────────────────────
+  function setEvidenceStatus(ev) {
+    if (!ev) { evidenceStatus.textContent = ""; return; }
+    const total = ev.fetched + ev.failed;
+    if (total === 0) {
+      evidenceStatus.textContent = "No evidence files in this report.";
+      evidenceStatus.className = "evidence-status";
+    } else if (ev.failed === 0) {
+      evidenceStatus.textContent = `Evidence: ${ev.fetched} file${ev.fetched !== 1 ? "s" : ""} fetched`;
+      evidenceStatus.className = "evidence-status evidence-status--ok";
+    } else {
+      evidenceStatus.textContent = `Evidence: ${ev.fetched} fetched, ${ev.failed} failed`;
+      evidenceStatus.className = "evidence-status evidence-status--warn";
+    }
+  }
+
   // ── Close viewer ───────────────────────────────────────────────
   closeViewer.addEventListener("click", () => {
     viewer.hidden = true;
     jsonBlock.textContent = "";
+    evidenceStatus.textContent = "";
   });
 
   // ── Template selector ──────────────────────────────────────────
