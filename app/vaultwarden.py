@@ -12,8 +12,19 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from pathlib import Path
 
 from flask import current_app, session
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+_LOCAL_BW     = _PROJECT_ROOT / "packages" / "bw" / "node_modules" / ".bin" / "bw"
+# bw config is stored here so it doesn't touch any global ~/.config/Bitwarden CLI
+_BW_APPDATA   = _PROJECT_ROOT / "packages" / "bw" / ".bw-appdata"
+
+
+def _bw_cmd() -> str:
+    """Return path to local bw binary, or 'bw' if not yet installed."""
+    return str(_LOCAL_BW) if _LOCAL_BW.exists() else "bw"
 
 
 class VaultwardenError(Exception):
@@ -44,14 +55,17 @@ class VaultwardenClient:
     def _run_bw(self, *args: str, stdin_data: str | None = None, env_extra: dict | None = None) -> str:
         """Run bw CLI and return stdout. Raises VaultwardenError on non-zero exit."""
         env = os.environ.copy()
+        # Isolate bw config/data from any global Bitwarden install
+        env["BITWARDENCLI_APPDATA_DIR"] = str(_BW_APPDATA)
         if self._session_key:
             env["BW_SESSION"] = self._session_key
         if env_extra:
             env.update(env_extra)
 
+        cmd = _bw_cmd()
         try:
             result = subprocess.run(
-                ["bw", *args],
+                [cmd, *args],
                 input=stdin_data,
                 capture_output=True,
                 text=True,
@@ -60,35 +74,40 @@ class VaultwardenClient:
             )
         except FileNotFoundError:
             raise VaultwardenError(
-                "bw CLI not found. Install it with: npm install -g @bitwarden/cli"
+                f"bw CLI not found at {cmd}. "
+                "Run: cd packages/bw && npm install"
             )
         except subprocess.TimeoutExpired:
             raise VaultwardenError("bw CLI timed out.")
 
         if result.returncode != 0:
-            raise VaultwardenError(result.stderr.strip() or result.stdout.strip() or "bw CLI error")
+            err = result.stderr.strip() or result.stdout.strip() or "bw CLI error"
+            raise VaultwardenError(err)
 
         return result.stdout.strip()
 
     # ── Session management ─────────────────────────────────────────
+
+    def _bw_status(self) -> str:
+        """Return the bw status string: unauthenticated | locked | unlocked."""
+        try:
+            raw = self._run_bw("status", "--raw")
+            return json.loads(raw).get("status", "unauthenticated")
+        except (VaultwardenError, json.JSONDecodeError):
+            return "unauthenticated"
 
     def connect(self) -> str:
         """
         Full connect flow: configure server → API key login → unlock.
         Returns the bw session key. Caller should store it in Flask session.
         """
+        _BW_APPDATA.mkdir(parents=True, exist_ok=True)
+
         # 1. Configure server (idempotent)
         self._run_bw("config", "server", self._server_url)
 
-        # 2. Check status
-        try:
-            raw = self._run_bw("status", "--raw")
-            bw_status = json.loads(raw).get("status", "unauthenticated")
-        except (VaultwardenError, json.JSONDecodeError):
-            bw_status = "unauthenticated"
-
-        # 3. Log in if needed
-        if bw_status == "unauthenticated":
+        # 2. Log in via API key if not already authenticated
+        if self._bw_status() == "unauthenticated":
             self._run_bw(
                 "login", "--apikey",
                 env_extra={
@@ -97,7 +116,7 @@ class VaultwardenClient:
                 },
             )
 
-        # 4. Unlock
+        # 3. Unlock — --raw returns just the session key
         session_key = self._run_bw(
             "unlock", "--passwordenv", "BW_PASSWORD", "--raw",
             env_extra={"BW_PASSWORD": self._master_password},
@@ -110,24 +129,14 @@ class VaultwardenClient:
 
     def _ensure_unlocked(self) -> None:
         """Verify session key is still valid; re-unlock if not. Updates Flask session."""
-        if not self._session_key:
-            key = self.connect()
-            session["vw_session_key"] = key
-            return
-        try:
-            raw = self._run_bw("status", "--raw")
-            st = json.loads(raw).get("status")
-            if st != "unlocked":
-                key = self.connect()
-                session["vw_session_key"] = key
-        except (VaultwardenError, json.JSONDecodeError):
+        if not self._session_key or self._bw_status() != "unlocked":
             key = self.connect()
             session["vw_session_key"] = key
 
     # ── Public API ─────────────────────────────────────────────────
 
     def status(self) -> dict:
-        """Return the raw bw status dict."""
+        """Return the bw status dict (keys: serverUrl, status, userEmail, …)."""
         self._run_bw("config", "server", self._server_url)
         try:
             return json.loads(self._run_bw("status", "--raw"))
@@ -191,8 +200,6 @@ class VaultwardenClient:
             raise VaultwardenError(f"Failed to parse Send response: {exc}") from exc
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
 def is_vaultwarden_configured(app) -> bool:
     """True if server-side config (URL, ORG_ID, COLLECTION_ID) is set."""
     return all(
@@ -203,7 +210,11 @@ def is_vaultwarden_configured(app) -> bool:
 
 def is_vault_connected() -> bool:
     """True if user credentials are present in the current session."""
-    return bool(session.get("vw_client_id") and session.get("vw_client_secret") and session.get("vw_master_password"))
+    return bool(
+        session.get("vw_client_id")
+        and session.get("vw_client_secret")
+        and session.get("vw_master_password")
+    )
 
 
 def get_vw_client() -> VaultwardenClient:
