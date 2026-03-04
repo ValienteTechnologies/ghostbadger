@@ -230,6 +230,11 @@ html, body {
   height: auto;
   display: block;
   margin: 0 auto 1.25rem;
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+
+.drawer__logo:hover {
+  transform: rotate(-5deg) scale(1.15);
 }
 
 .drawer__section { margin-bottom: 1.5rem; }
