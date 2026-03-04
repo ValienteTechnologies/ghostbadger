@@ -1,14 +1,19 @@
 import base64
 import json
 
-from flask import current_app, jsonify, render_template, request, session
+from flask import Response, current_app, jsonify, render_template, request, session
 
 from ..auth import require_token
 from ..extensions import csrf
 from ..ghostwriter import GhostwriterClient, GhostwriterError
 from ..reporting import get_available_templates
 from ..reporting.evidence import sync_evidence
+from ..services.rendering import render_report
 from . import bp
+
+# In-memory cache of the last generated JSON per report_id.
+# Single-user tool: a plain dict is sufficient.
+_report_cache: dict[int, dict] = {}
 
 
 def _client() -> GhostwriterClient:
@@ -75,6 +80,8 @@ def generate_report(report_id: int):
         fetched = sum(1 for ok in evidence_results.values() if ok)
         failed  = sum(1 for ok in evidence_results.values() if not ok)
 
+        _report_cache[report_id] = report_json
+
         return jsonify({
             "data": report_json,
             "evidence": {"fetched": fetched, "failed": failed},
@@ -83,3 +90,35 @@ def generate_report(report_id: int):
         return jsonify({"error": str(exc)}), 502
     except Exception as exc:
         return jsonify({"error": f"Failed to decode report data: {exc}"}), 500
+
+
+@bp.route("/api/report/<int:report_id>/render", methods=["POST"])
+@csrf.exempt
+@require_token
+def render_report_pdf(report_id: int):
+    if report_id not in _report_cache:
+        return jsonify({"error": "Generate the report first."}), 400
+
+    template_name = session.get("selected_template")
+    if not template_name:
+        return jsonify({"error": "No template selected."}), 400
+
+    templates = {t.name: t for t in get_available_templates()}
+    template = templates.get(template_name)
+    if not template:
+        return jsonify({"error": f"Template '{template_name}' not found."}), 400
+
+    try:
+        pdf_bytes = render_report(_report_cache[report_id], template)
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="report-{report_id}.pdf"',
+            },
+        )
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 500
+    except Exception as exc:
+        current_app.logger.exception("Rendering failed for report %d", report_id)
+        return jsonify({"error": f"Rendering failed: {exc}"}), 500

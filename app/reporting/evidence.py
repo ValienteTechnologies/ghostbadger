@@ -18,7 +18,7 @@ def local_path(evidence_path: str) -> Path:
     return _EVIDENCE_DIR / Path(evidence_path).relative_to("evidence")
 
 
-def _collect_paths(obj: object) -> set[str]:
+def collect_paths(obj: object) -> set[str]:
     """Recursively find all evidence path strings in the report JSON."""
     paths: set[str] = set()
     if isinstance(obj, dict):
@@ -26,10 +26,10 @@ def _collect_paths(obj: object) -> set[str]:
         if isinstance(p, str) and p.startswith("evidence/"):
             paths.add(p)
         for v in obj.values():
-            paths |= _collect_paths(v)
+            paths |= collect_paths(v)
     elif isinstance(obj, list):
         for item in obj:
-            paths |= _collect_paths(item)
+            paths |= collect_paths(item)
     return paths
 
 
@@ -53,7 +53,7 @@ def sync_evidence(
     Returns {evidence_path: success} for every path found.
     Missing files are saved silently; the caller sees False for failures.
     """
-    paths = _collect_paths(report_json)
+    paths = collect_paths(report_json)
     if not paths:
         return {}
 
