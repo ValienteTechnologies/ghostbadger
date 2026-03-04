@@ -321,44 +321,6 @@ html, body {
 }
 .alert--error { background: #3a1c1c; border: 1px solid var(--color-error); color: var(--color-error); }
 
-/* ── Toast ──────────────────────────────────────────────────── */
-.toast {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  padding: .625rem .875rem;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 4px 16px rgba(0,0,0,.5);
-  font-size: .8125rem;
-  color: var(--color-muted);
-  animation: toast-in .2s ease;
-  white-space: nowrap;
-}
-.toast__text { color: var(--color-text); }
-.toast__ok   { color: var(--color-success); }
-.toast__warn { color: var(--color-warning); }
-.toast__close {
-  background: none;
-  border: none;
-  color: var(--color-muted);
-  cursor: pointer;
-  font-size: .875rem;
-  line-height: 1;
-  padding: 0 .125rem;
-}
-.toast__close:hover { color: var(--color-text); }
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
 
 /* ── Project Grid ───────────────────────────────────────────── */
 .project-grid {

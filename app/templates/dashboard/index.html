@@ -113,11 +113,7 @@
 
 </div>
 
-<!-- ── Evidence toast ─────────────────────────────────────── -->
-<div class="toast" id="evidence-toast" hidden>
-  <span class="toast__text" id="evidence-toast-text"></span>
-  <button class="toast__close" id="evidence-toast-close" title="Dismiss">✕</button>
-</div>
+<div class="flash-container" id="flash-container"></div>
 
 <div class="spinner-overlay" id="spinner" hidden>
   <div class="spinner"></div>
@@ -142,47 +138,37 @@
   const statusbarElapsed = document.getElementById("statusbar-elapsed");
   const statusbarToggle  = document.getElementById("statusbar-toggle");
   const statusbarMsgs    = document.getElementById("statusbar-msgs");
-  const evidenceToast    = document.getElementById("evidence-toast");
-  const evidenceToastTxt = document.getElementById("evidence-toast-text");
-  const evidenceToastX   = document.getElementById("evidence-toast-close");
+  const flashContainer = document.getElementById("flash-container");
 
   let _activeReportId  = null;
   let _currentPdfUrl   = null;
   let _activeEs        = null;
   let _renderTimer     = null;
   let _renderT0        = null;
-  let _toastTimeout    = null;
 
   // ── Utilities ──────────────────────────────────────────────────
-  function showError(msg) {
+  function showFlash(category, msg, ttl = 5000) {
     const el = document.createElement("div");
-    el.className = "alert alert--error";
+    el.className = `flash flash--${category}`;
     el.textContent = msg;
-    document.querySelector(".dashboard__main").prepend(el);
-    setTimeout(() => el.remove(), 6000);
+    flashContainer.appendChild(el);
+    setTimeout(() => el.remove(), ttl);
   }
 
-  function showEvidenceToast(fetched, failed) {
-    clearTimeout(_toastTimeout);
+  function showError(msg) {
+    showFlash("error", msg, 6000);
+  }
+
+  function showEvidenceFlash(fetched, failed) {
     const total = fetched + failed;
     if (total === 0) {
-      evidenceToastTxt.innerHTML = "No evidence files attached";
+      showFlash("info", "No evidence files attached.");
     } else if (failed === 0) {
-      evidenceToastTxt.innerHTML =
-        `<span class="toast__ok">✓</span> ${fetched} evidence file${fetched !== 1 ? "s" : ""} loaded`;
+      showFlash("success", `${fetched} evidence file${fetched !== 1 ? "s" : ""} loaded.`);
     } else {
-      evidenceToastTxt.innerHTML =
-        `<span class="toast__ok">✓</span> ${fetched} ok &nbsp;` +
-        `<span class="toast__warn">⚠ ${failed} failed</span>`;
+      showFlash("error", `Evidence: ${fetched} loaded, ${failed} failed.`);
     }
-    evidenceToast.hidden = false;
-    _toastTimeout = setTimeout(() => { evidenceToast.hidden = true; }, 5000);
   }
-
-  evidenceToastX.addEventListener("click", () => {
-    clearTimeout(_toastTimeout);
-    evidenceToast.hidden = true;
-  });
 
   // ── View PDF (event delegation on all .view-btn) ───────────────
   document.addEventListener("click", (e) => {
@@ -294,7 +280,7 @@
 
     es.addEventListener("evidence", (e) => {
       const d = JSON.parse(e.data);
-      showEvidenceToast(d.fetched, d.failed);
+      showEvidenceFlash(d.fetched, d.failed);
     });
 
     es.addEventListener("message", (e) => {
