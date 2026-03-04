@@ -7,7 +7,17 @@
 
   <nav class="drawer">
     <span class="drawer__brand">Ghostbadger</span>
-    <div class="drawer__nav"></div>
+    <div class="drawer__nav">
+      {% if templates %}
+        <p class="drawer__nav-label">Template</p>
+        {% for t in templates %}
+          <button
+            class="drawer__template-item{% if t.name == selected_template %} drawer__template-item--active{% endif %}"
+            data-template="{{ t.name }}"
+          >{{ t.name }}</button>
+        {% endfor %}
+      {% endif %}
+    </div>
     <a class="btn btn--secondary btn--sm" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
   </nav>
 
@@ -199,6 +209,24 @@
   closeViewer.addEventListener("click", () => {
     viewer.hidden = true;
     jsonBlock.textContent = "";
+  });
+
+  // ── Template selector ──────────────────────────────────────────
+  document.querySelectorAll(".drawer__template-item").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const name = btn.dataset.template;
+      try {
+        const resp = await fetch("/dashboard/api/template/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (!resp.ok) return;
+        document.querySelectorAll(".drawer__template-item").forEach((b) =>
+          b.classList.toggle("drawer__template-item--active", b === btn)
+        );
+      } catch (_) {}
+    });
   });
 
   // ── Util ───────────────────────────────────────────────────────
