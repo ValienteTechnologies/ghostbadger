@@ -20,12 +20,20 @@ _SEVERITY: dict[str, tuple[int, str]] = {
 }
 
 
-def _augment_findings(raw: dict) -> dict:
-    """Return a shallow copy of the report JSON with a `cvss` helper added to
-    each finding.  Everything else is the raw Ghostwriter JSON untouched."""
-    data = dict(raw)
+def _make_vue_data(raw: dict) -> dict:
+    """Reshape raw Ghostwriter JSON into the three top-level variables the
+    SysReptor rendering bundle exposes to templates: report, finding_groups,
+    pentesters.
+
+    - report        → the full raw JSON (all Ghostwriter fields accessible as
+                       report.<field>), with augmented findings stored under
+                       report.findings so templates can still iterate them.
+    - finding_groups→ [{"findings": <augmented list>}] for templates that loop
+                       over finding_groups[0].findings.
+    - pentesters    → raw team list (alias kept for bundle compatibility).
+    """
     findings = []
-    for f in data.get("findings") or []:
+    for f in raw.get("findings") or []:
         f = dict(f)
         sev = (f.get("severity") or "info").lower()
         level_num, level = _SEVERITY.get(sev, (5, "info"))
@@ -36,8 +44,15 @@ def _augment_findings(raw: dict) -> dict:
             "vector":       f.get("cvss_vector") or "n/a",
         }
         findings.append(f)
-    data["findings"] = findings
-    return data
+
+    report = dict(raw)
+    report["findings"] = findings
+
+    return {
+        "report":        report,
+        "finding_groups": [{"findings": findings}],
+        "pentesters":    raw.get("team") or [],
+    }
 
 
 def render_report(
@@ -45,31 +60,18 @@ def render_report(
     template: ReportTemplate,
     language: str = "tr",
 ) -> bytes:
-    """Full pipeline: Ghostwriter JSON → augmented data → HTML → PDF.
-
-    Args:
-        report_json: Raw decoded report dict from Ghostwriter's generateReport mutation.
-        template:    Selected ReportTemplate (html_path, css_path, assets_dir).
-        language:    BCP-47 language tag for the HTML document (default: "tr").
-
-    Returns:
-        PDF as bytes.
-
-    Raises:
-        FileNotFoundError: If the Vue rendering bundle is missing.
-        RuntimeError: If Chromium or WeasyPrint rendering fails.
-    """
+    """Full pipeline: Ghostwriter JSON → Vue data → HTML → PDF."""
     if not _BUNDLE.exists():
         raise FileNotFoundError(
             f"Vue rendering bundle not found at {_BUNDLE}. "
             "Run: cd packages/rendering && npm install && npm run build"
         )
 
-    data         = _augment_findings(report_json)
+    data          = _make_vue_data(report_json)
     template_html = template.html_path.read_text("utf-8")
-    css          = template.css_path.read_text("utf-8") if template.css_path.exists() else None
-    bundle_js    = _BUNDLE.read_text("utf-8")
-    resources    = build(template, report_json)
+    css           = template.css_path.read_text("utf-8") if template.css_path.exists() else None
+    bundle_js     = _BUNDLE.read_text("utf-8")
+    resources     = build(template, report_json)
 
     html = render_to_html(data, template_html, css, bundle_js, language, resources)
     return render_to_pdf(html, resources)
