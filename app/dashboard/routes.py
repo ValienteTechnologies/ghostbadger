@@ -36,7 +36,7 @@ def index():
     client = _client()
     projects, error = [], None
     try:
-        projects = client.get_recent_projects(limit=5)
+        projects = client.get_recent_projects(limit=4)
     except GhostwriterError as exc:
         error = str(exc)
     templates = get_available_templates()

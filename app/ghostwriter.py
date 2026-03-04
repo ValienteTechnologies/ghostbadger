@@ -12,6 +12,11 @@ query RecentProjects($limit: Int!) {
     startDate
     endDate
     client { name shortName }
+    reports(order_by: {last_update: desc}, limit: 1) {
+      id
+      title
+      complete
+    }
   }
 }
 """
@@ -69,7 +74,7 @@ class GhostwriterClient:
             raise GhostwriterError(f"GraphQL error: {msgs}")
         return body.get("data", {})
 
-    def get_recent_projects(self, limit: int = 5) -> list[dict]:
+    def get_recent_projects(self, limit: int = 4) -> list[dict]:
         data = self._gql(_RECENT_PROJECTS_QUERY, {"limit": limit})
         return data.get("project", [])
 

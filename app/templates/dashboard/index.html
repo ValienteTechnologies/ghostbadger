@@ -36,13 +36,13 @@
 
       <div class="project-grid">
         {% for project in projects %}
-          <button
-            class="project-card"
-            data-project-id="{{ project.id }}"
-            aria-expanded="false"
-          >
+          {% set report = project.reports[0] if project.reports else none %}
+          <div class="project-card">
+
             <div class="project-card__top">
-              <span class="project-card__client">{{ project.client.shortName or project.client.name if project.client else "—" }}</span>
+              <span class="project-card__client">
+                {{ project.client.shortName or project.client.name if project.client else "—" }}
+              </span>
               <span class="badge {% if project.complete %}badge--done{% else %}badge--active{% endif %}">
                 {{ "Complete" if project.complete else "Active" }}
               </span>
@@ -51,28 +51,35 @@
             <div class="project-card__dates">
               {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
             </div>
-          </button>
+
+            {% if report %}
+              <div class="project-card__report">
+                <div class="project-card__report-row">
+                  <span class="project-card__report-title" title="{{ report.title }}">{{ report.title }}</span>
+                  <span class="badge {% if report.complete %}badge--done{% else %}badge--active{% endif %}">
+                    {{ "Complete" if report.complete else "Draft" }}
+                  </span>
+                </div>
+                <div class="project-card__actions">
+                  <button
+                    class="btn btn--primary btn--sm generate-btn"
+                    data-report-id="{{ report.id }}"
+                  >Generate</button>
+                  <button
+                    class="btn btn--primary btn--sm render-btn"
+                    data-report-id="{{ report.id }}"
+                    hidden
+                  >Render PDF</button>
+                  <span class="evidence-status" data-evidence hidden></span>
+                </div>
+              </div>
+            {% else %}
+              <p class="empty-state" style="padding-top:.5rem;">No reports</p>
+            {% endif %}
+
+          </div>
         {% endfor %}
       </div>
-    </section>
-
-    <section class="reports-panel" id="reports-panel" hidden>
-      <h2 class="section-title">
-        Reports for <span id="reports-panel-project"></span>
-      </h2>
-      <div id="reports-list" class="reports-list"></div>
-    </section>
-
-    <section class="report-viewer" id="report-viewer" hidden>
-      <div class="report-viewer__header">
-        <h2 class="section-title">Report Data</h2>
-        <div class="report-viewer__actions">
-          <button class="btn btn--primary btn--sm" id="render-btn">Render PDF</button>
-          <button class="btn btn--secondary btn--sm" id="close-viewer">Close</button>
-        </div>
-      </div>
-      <div id="evidence-status" class="evidence-status"></div>
-      <pre class="json-block" id="report-json"></pre>
     </section>
 
   </main>
@@ -88,7 +95,6 @@
       </div>
     </div>
 
-    <!-- Progress (visible while rendering) -->
     <div class="pdf-panel__progress" id="pdf-progress">
       <div class="pdf-panel__bar-track">
         <div class="pdf-panel__bar-fill"></div>
@@ -96,15 +102,8 @@
       <span class="pdf-panel__stage-label" id="pdf-stage-label">Starting&hellip;</span>
     </div>
 
-    <!-- PDF iframe (visible after successful render) -->
-    <iframe
-      class="pdf-panel__iframe"
-      id="pdf-iframe"
-      hidden
-      title="PDF Preview"
-    ></iframe>
+    <iframe class="pdf-panel__iframe" id="pdf-iframe" hidden title="PDF Preview"></iframe>
 
-    <!-- Status bar (always visible once panel opens) -->
     <div class="pdf-panel__statusbar" id="pdf-statusbar" hidden>
       <div class="statusbar__summary" id="statusbar-summary">
         <span id="statusbar-stage">—</span>
@@ -128,24 +127,15 @@
 (function () {
   "use strict";
 
-  // ── Element refs ───────────────────────────────────────────────
-  const spinner        = document.getElementById("spinner");
-  const reportsPanel   = document.getElementById("reports-panel");
-  const reportsList    = document.getElementById("reports-list");
-  const panelTitle     = document.getElementById("reports-panel-project");
-  const viewer         = document.getElementById("report-viewer");
-  const jsonBlock      = document.getElementById("report-json");
-  const closeViewer    = document.getElementById("close-viewer");
-  const evidenceStatus = document.getElementById("evidence-status");
-  const renderBtn      = document.getElementById("render-btn");
-
-  const pdfPanel       = document.getElementById("pdf-panel");
-  const pdfProgress    = document.getElementById("pdf-progress");
-  const pdfStageLabel  = document.getElementById("pdf-stage-label");
-  const pdfIframe      = document.getElementById("pdf-iframe");
-  const pdfDownloadBtn = document.getElementById("pdf-download-btn");
-  const pdfCloseBtn    = document.getElementById("pdf-close-btn");
-  const pdfStatusbar   = document.getElementById("pdf-statusbar");
+  // ── PDF panel refs ─────────────────────────────────────────────
+  const spinner          = document.getElementById("spinner");
+  const pdfPanel         = document.getElementById("pdf-panel");
+  const pdfProgress      = document.getElementById("pdf-progress");
+  const pdfStageLabel    = document.getElementById("pdf-stage-label");
+  const pdfIframe        = document.getElementById("pdf-iframe");
+  const pdfDownloadBtn   = document.getElementById("pdf-download-btn");
+  const pdfCloseBtn      = document.getElementById("pdf-close-btn");
+  const pdfStatusbar     = document.getElementById("pdf-statusbar");
   const statusbarStage   = document.getElementById("statusbar-stage");
   const statusbarElapsed = document.getElementById("statusbar-elapsed");
   const statusbarToggle  = document.getElementById("statusbar-toggle");
@@ -156,13 +146,11 @@
   let _activeEs       = null;
   let _renderTimer    = null;
   let _renderT0       = null;
-  let _msgCount       = 0;
 
-  // ── Spinner ────────────────────────────────────────────────────
+  // ── Utilities ──────────────────────────────────────────────────
   function showSpinner() { spinner.hidden = false; }
   function hideSpinner() { spinner.hidden = true; }
 
-  // ── Flash errors ───────────────────────────────────────────────
   function showError(msg) {
     const el = document.createElement("div");
     el.className = "alert alert--error";
@@ -171,76 +159,33 @@
     setTimeout(() => el.remove(), 6000);
   }
 
-  // ── Project card → load reports ────────────────────────────────
-  document.querySelectorAll(".project-card").forEach((card) => {
-    card.addEventListener("click", async () => {
-      const id       = card.dataset.projectId;
-      const codename = card.querySelector(".project-card__codename").textContent.trim();
-
-      if (card.getAttribute("aria-expanded") === "true") {
-        card.setAttribute("aria-expanded", "false");
-        reportsPanel.hidden = true;
-        viewer.hidden = true;
-        return;
-      }
-
-      document.querySelectorAll(".project-card[aria-expanded='true']")
-        .forEach(c => c.setAttribute("aria-expanded", "false"));
-      card.setAttribute("aria-expanded", "true");
-
-      showSpinner();
-      reportsPanel.hidden = true;
-      viewer.hidden = true;
-
-      try {
-        const resp = await fetch(`/dashboard/api/project/${id}/reports`);
-        const body = await resp.json();
-        hideSpinner();
-        if (body.error) { showError(body.error); return; }
-        panelTitle.textContent = codename;
-        renderReports(body.reports);
-        reportsPanel.hidden = false;
-        reportsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-      } catch (err) {
-        hideSpinner();
-        showError("Failed to load reports: " + err.message);
-      }
-    });
-  });
-
-  // ── Render report list ─────────────────────────────────────────
-  function renderReports(reports) {
-    reportsList.innerHTML = "";
-    if (!reports || reports.length === 0) {
-      reportsList.innerHTML = '<p class="empty-state">No reports for this project.</p>';
-      return;
+  function setEvidenceStatus(el, ev) {
+    if (!ev) { el.hidden = true; return; }
+    const total = ev.fetched + ev.failed;
+    el.hidden = false;
+    if (total === 0) {
+      el.textContent = "No evidence files";
+      el.className = "evidence-status";
+    } else if (ev.failed === 0) {
+      el.textContent = `${ev.fetched} evidence file${ev.fetched !== 1 ? "s" : ""}`;
+      el.className = "evidence-status evidence-status--ok";
+    } else {
+      el.textContent = `Evidence: ${ev.fetched} ok, ${ev.failed} failed`;
+      el.className = "evidence-status evidence-status--warn";
     }
-    reports.forEach((r) => {
-      const item = document.createElement("div");
-      item.className = "report-item";
-      item.innerHTML = `
-        <div class="report-item__info">
-          <span class="report-item__title">${escHtml(r.title || "Untitled")}</span>
-          <span class="badge ${r.complete ? "badge--done" : "badge--active"}">
-            ${r.complete ? "Complete" : "Draft"}
-          </span>
-        </div>
-        <button class="btn btn--primary btn--sm generate-btn" data-report-id="${r.id}">
-          Generate
-        </button>
-      `;
-      reportsList.appendChild(item);
-    });
-    reportsList.querySelectorAll(".generate-btn").forEach((btn) => {
-      btn.addEventListener("click", () => generateReport(btn.dataset.reportId));
-    });
   }
 
-  // ── Generate report ────────────────────────────────────────────
-  async function generateReport(reportId) {
-    _activeReportId = reportId;
+  // ── Generate (event delegation on all .generate-btn) ──────────
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".generate-btn");
+    if (!btn) return;
+
+    const reportId   = btn.dataset.reportId;
+    const card       = btn.closest(".project-card");
+    const renderBtn  = card.querySelector(".render-btn");
+    const evidenceEl = card.querySelector("[data-evidence]");
+
     showSpinner();
-    viewer.hidden = true;
     try {
       const resp = await fetch(`/dashboard/api/report/${reportId}/generate`, {
         method: "POST",
@@ -249,64 +194,47 @@
       const body = await resp.json();
       hideSpinner();
       if (body.error) { showError(body.error); return; }
-      jsonBlock.textContent = JSON.stringify(body.data, null, 2);
-      setEvidenceStatus(body.evidence);
-      viewer.hidden = false;
-      viewer.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      setEvidenceStatus(evidenceEl, body.evidence);
+      renderBtn.hidden = false;
     } catch (err) {
       hideSpinner();
-      showError("Failed to generate report: " + err.message);
+      showError("Failed to generate: " + err.message);
     }
-  }
+  });
 
-  // ── Evidence status ────────────────────────────────────────────
-  function setEvidenceStatus(ev) {
-    if (!ev) { evidenceStatus.textContent = ""; return; }
-    const total = ev.fetched + ev.failed;
-    if (total === 0) {
-      evidenceStatus.textContent = "No evidence files in this report.";
-      evidenceStatus.className = "evidence-status";
-    } else if (ev.failed === 0) {
-      evidenceStatus.textContent = `Evidence: ${ev.fetched} file${ev.fetched !== 1 ? "s" : ""} fetched`;
-      evidenceStatus.className = "evidence-status evidence-status--ok";
-    } else {
-      evidenceStatus.textContent = `Evidence: ${ev.fetched} fetched, ${ev.failed} failed`;
-      evidenceStatus.className = "evidence-status evidence-status--warn";
-    }
-  }
+  // ── Render PDF (event delegation on all .render-btn) ──────────
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".render-btn");
+    if (!btn) return;
+    _activeReportId = btn.dataset.reportId;
+    startPdfRender();
+  });
 
-  // ── PDF panel helpers ──────────────────────────────────────────
+  // ── PDF panel: open + reset ────────────────────────────────────
   function openPdfPanel() {
-    // Cancel any previous SSE stream
     if (_activeEs) { _activeEs.close(); _activeEs = null; }
     stopTimer();
-
-    // Revoke previous blob URL
     if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
 
-    // Reset UI
-    pdfProgress.hidden    = false;
-    pdfIframe.hidden      = true;
-    pdfIframe.src         = "";
-    pdfDownloadBtn.hidden = true;
-    pdfDownloadBtn.href   = "#";
-    pdfStatusbar.hidden   = true;
+    pdfProgress.hidden      = false;
+    pdfIframe.hidden        = true;
+    pdfIframe.src           = "";
+    pdfDownloadBtn.hidden   = true;
+    pdfStatusbar.hidden     = true;
     statusbarMsgs.innerHTML = "";
     statusbarToggle.hidden  = true;
     statusbarElapsed.textContent = "";
-    _msgCount = 0;
-
-    pdfStageLabel.textContent = "Starting\u2026";
-    statusbarStage.textContent = "\u2014";
+    statusbarStage.textContent   = "\u2014";
+    pdfStageLabel.textContent    = "Starting\u2026";
 
     pdfPanel.hidden = false;
   }
 
   function startTimer() {
-    _renderT0 = Date.now();
+    _renderT0    = Date.now();
     _renderTimer = setInterval(() => {
-      const s = ((Date.now() - _renderT0) / 1000).toFixed(1);
-      statusbarElapsed.textContent = s + "s";
+      statusbarElapsed.textContent = ((Date.now() - _renderT0) / 1000).toFixed(1) + "s";
     }, 100);
   }
 
@@ -315,14 +243,12 @@
   }
 
   function addStatusMsg(level, text) {
-    _msgCount++;
     const el = document.createElement("div");
     el.className = `statusbar__msg statusbar__msg--${level}`;
     el.textContent = text;
     statusbarMsgs.appendChild(el);
-    // Auto-show messages panel if there are errors or warnings
     if (level === "error" || level === "warning") {
-      statusbarMsgs.hidden = false;
+      statusbarMsgs.hidden   = false;
       statusbarToggle.hidden = false;
       statusbarToggle.textContent = "▴";
     } else if (statusbarToggle.hidden) {
@@ -335,7 +261,7 @@
     if (_activeEs) { _activeEs.close(); _activeEs = null; }
     stopTimer();
     if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
-    pdfIframe.src = "";
+    pdfIframe.src   = "";
     pdfPanel.hidden = true;
   });
 
@@ -344,14 +270,11 @@
     statusbarToggle.textContent = statusbarMsgs.hidden ? "▾" : "▴";
   });
 
-  // ── Render PDF (async SSE) ─────────────────────────────────────
-  renderBtn.addEventListener("click", async () => {
-    if (!_activeReportId) return;
-
+  // ── Core async render ──────────────────────────────────────────
+  async function startPdfRender() {
     openPdfPanel();
     startTimer();
 
-    // Kick off the background render job
     let jobId;
     try {
       const resp = await fetch(`/dashboard/api/report/${_activeReportId}/render`, {
@@ -361,7 +284,7 @@
       const body = await resp.json();
       if (!resp.ok || body.error) {
         stopTimer();
-        pdfProgress.hidden = true;
+        pdfProgress.hidden  = true;
         pdfStatusbar.hidden = false;
         statusbarStage.textContent = "Failed to start";
         addStatusMsg("error", body.error || "Failed to start render.");
@@ -370,21 +293,20 @@
       jobId = body.job_id;
     } catch (err) {
       stopTimer();
-      pdfProgress.hidden = true;
+      pdfProgress.hidden  = true;
       pdfStatusbar.hidden = false;
       statusbarStage.textContent = "Error";
       addStatusMsg("error", err.message);
       return;
     }
 
-    // Open SSE stream
     const es = new EventSource(`/dashboard/api/render/${jobId}/stream`);
     _activeEs = es;
 
     es.addEventListener("stage", (e) => {
       const d = JSON.parse(e.data);
-      pdfStageLabel.textContent = d.label;
-      pdfStatusbar.hidden = false;
+      pdfStageLabel.textContent  = d.label;
+      pdfStatusbar.hidden        = false;
       statusbarStage.textContent = d.label;
       addStatusMsg("info", d.label);
     });
@@ -395,8 +317,7 @@
     });
 
     es.addEventListener("render_error", (e) => {
-      const d = JSON.parse(e.data);
-      addStatusMsg("error", d.message);
+      addStatusMsg("error", JSON.parse(e.data).message);
     });
 
     es.addEventListener("done", async (e) => {
@@ -413,10 +334,9 @@
         return;
       }
 
-      statusbarStage.textContent  = `Done`;
+      statusbarStage.textContent   = "Done";
       statusbarElapsed.textContent = `${d.elapsed}s`;
 
-      // Fetch and display the PDF
       try {
         const resp = await fetch(`/dashboard/api/render/${jobId}/pdf`);
         if (!resp.ok) {
@@ -424,12 +344,9 @@
           addStatusMsg("error", body.error || "Could not retrieve PDF.");
           return;
         }
-        const blob = await resp.blob();
-        _currentPdfUrl = URL.createObjectURL(blob);
-
+        _currentPdfUrl = URL.createObjectURL(await resp.blob());
         pdfIframe.src    = _currentPdfUrl;
         pdfIframe.hidden = false;
-
         pdfDownloadBtn.href     = _currentPdfUrl;
         pdfDownloadBtn.download = `report-${_activeReportId}.pdf`;
         pdfDownloadBtn.hidden   = false;
@@ -443,20 +360,12 @@
       es.close();
       _activeEs = null;
       stopTimer();
-      pdfProgress.hidden = true;
+      pdfProgress.hidden  = true;
       pdfStatusbar.hidden = false;
       statusbarStage.textContent = "Connection lost";
       addStatusMsg("error", "SSE connection closed unexpectedly.");
     };
-  });
-
-  // ── Close viewer ───────────────────────────────────────────────
-  closeViewer.addEventListener("click", () => {
-    viewer.hidden = true;
-    jsonBlock.textContent = "";
-    evidenceStatus.textContent = "";
-    _activeReportId = null;
-  });
+  }
 
   // ── Template selector ──────────────────────────────────────────
   document.querySelectorAll(".drawer__template-item").forEach((btn) => {
@@ -475,13 +384,6 @@
       } catch (_) {}
     });
   });
-
-  // ── Util ───────────────────────────────────────────────────────
-  function escHtml(str) {
-    return str.replace(/[&<>"']/g, (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
-    );
-  }
 })();
 </script>
 {% endblock %}
