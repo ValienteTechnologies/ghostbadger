@@ -9,6 +9,7 @@ on every request.
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import subprocess
@@ -182,8 +183,6 @@ class VaultwardenClient:
         password: str | None = None,
     ) -> dict:
         """Create a Text Send and return dict with accessUrl."""
-        import datetime
-
         self._ensure_unlocked()
 
         deletion_date = (
