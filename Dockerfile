@@ -45,6 +45,11 @@ COPY . .
 COPY --from=js-builder /build/packages/rendering/dist/ ./packages/rendering/dist/
 COPY --from=js-builder /build/packages/bitwarden/node_modules/ ./packages/bitwarden/node_modules/
 
+# Save defaults so entrypoint can seed bind-mounted directories on first run
+RUN cp -r app/reporting/resources /app/defaults/reporting_resources
+
+RUN chmod +x entrypoint.sh
+
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 # Required when running as root (default in Docker)
@@ -52,4 +57,5 @@ ENV PLAYWRIGHT_CHROMIUM_NO_SANDBOX=1
 
 EXPOSE 80
 
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:80", "--workers", "4", "--timeout", "180", "wsgi:application"]
