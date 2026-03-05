@@ -656,6 +656,22 @@
   }
 
   // ── Vaultwarden: export steps ──────────────────────────────────
+  function freezeExportFields() {
+    exportFilename.disabled = true;
+    exportOwnerPw.disabled  = true;
+    exportUserPw.disabled   = true;
+    document.getElementById("randomize-owner-pw").disabled = true;
+    document.getElementById("randomize-user-pw").disabled  = true;
+  }
+
+  function unfreezeExportFields() {
+    exportFilename.disabled = false;
+    exportOwnerPw.disabled  = false;
+    exportUserPw.disabled   = false;
+    document.getElementById("randomize-owner-pw").disabled = false;
+    document.getElementById("randomize-user-pw").disabled  = false;
+  }
+
   function resetVaultSteps() {
     if (!vwConfigured) return;
     stepVault.hidden     = false;
@@ -664,6 +680,7 @@
     stepDownload.hidden  = true;
     if (btnSaveVault)  btnSaveVault.disabled  = false;
     if (btnCreateSend) btnCreateSend.disabled = false;
+    unfreezeExportFields();
   }
 
   // Expiry selector
@@ -714,6 +731,7 @@
           return;
         }
         showFlash("success", "Password saved to Vaultwarden.");
+        freezeExportFields();
         stepVault.hidden = true;
         stepSend.hidden  = false;
       } catch (err) {
