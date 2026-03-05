@@ -14,9 +14,6 @@
 
 https://valientetechnologies.com/blog/posts/introducing-ghostbadger/
 
-> [!IMPORTANT]
-> Sessions are not persisted server-side — they are kept only in the client cookie. Cookie expiry is derived from the Ghostwriter JWT token (API key). Make sure to set a sufficiently long expiry when creating the API key in Ghostwriter, otherwise your session will expire mid-use.
-
 ### Quick Setup
 
 **With Docker Compose (recommended)**
@@ -35,6 +32,9 @@ EOF
 docker compose pull
 docker compose up -d
 ```
+
+> [!IMPORTANT]
+> Sessions are not persisted server-side — they are kept only in the client cookie. Cookie expiry is derived from the Ghostwriter JWT token (API key). Make sure to set a sufficiently long expiry when creating the API key in Ghostwriter, otherwise your session will expire mid-use.
 
 Templates and assets are seeded from the image on first run into `./resources/` — edit them freely.
 
