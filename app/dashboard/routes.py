@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import io
 import json as _json
 import logging
@@ -168,9 +169,10 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str)
             wp_logger.removeHandler(handler)
 
         elapsed = round(time.monotonic() - t0, 1)
-        job["pdf"]  = pdf
-        job["done"] = True
-        emit("done", {"success": True, "elapsed": elapsed})
+        job["pdf"]      = pdf
+        job["pdf_hash"] = hashlib.md5(pdf).hexdigest()
+        job["done"]     = True
+        emit("done", {"success": True, "elapsed": elapsed, "pdf_hash": job["pdf_hash"]})
 
     except Exception as exc:
         elapsed = round(time.monotonic() - t0, 1)

@@ -277,11 +277,12 @@
   const sendLinkInput  = document.getElementById("send-link-input");
   const vwConnectBtn   = document.getElementById("vw-connect-btn");
 
-  let _activeReportId   = null;
-  let _activeJobId      = null;
+  let _activeReportId    = null;
+  let _activeJobId       = null;
   let _activeReportTitle = null;
-  let _currentPdfUrl    = null;
-  let _activeEs         = null;
+  let _currentPdfUrl     = null;
+  let _activePdfHash     = null;
+  let _activeEs          = null;
   let _renderTimer      = null;
   let _renderT0         = null;
   let _expiryDays       = 14;
@@ -519,6 +520,7 @@
       stopTimer();
 
       const d = JSON.parse(e.data);
+      _activePdfHash      = d.pdf_hash || null;
       pdfStatusbar.hidden = false;
       pdfProgress.hidden  = true;
 
@@ -685,18 +687,23 @@
       }
       btnSaveVault.disabled = true;
       btnSaveVault.textContent = "Saving…";
-      const filename = exportFilename.value || `report-${_activeReportId}.pdf`;
-      const title    = _activeReportTitle || filename;
-      const now      = new Date().toISOString().slice(0, 10);
+      const title = _activeReportTitle || exportFilename.value || `report-${_activeReportId}.pdf`;
+      const now   = new Date().toISOString().slice(0, 10);
+      const notes = [
+        "Generated via Ghostbadger",
+        "---",
+        `Date: ${now}`,
+        `Hash: ${_activePdfHash || "n/a"}`,
+        `Owner: ${exportOwnerPw.value}`,
+      ].join("\n");
       try {
         const resp = await fetch("/dashboard/api/vault/credential", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name:     title,
-            username: filename,
             password: exportUserPw.value,
-            notes:    `Generated ${now} via Ghostbadger`,
+            notes:    notes,
           }),
         });
         const data = await resp.json();
