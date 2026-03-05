@@ -55,6 +55,12 @@ docker run -d \
 
 ---
 
+### Templates
+
+See [app/reporting/resources/README.md](app/reporting/resources/README.md) for full documentation on creating and modifying report templates, available data fields, special components, and page layout.
+
+---
+
 ### The Blog Post
 
 https://valientetechnologies.com/blog/posts/introducing-ghostbadger/
