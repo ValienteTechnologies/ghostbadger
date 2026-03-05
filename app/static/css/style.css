@@ -234,6 +234,9 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   user-select: none;
 }
 
+.btn:hover,
+.btn:active { text-decoration: none; }
+
 .btn:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
@@ -244,8 +247,8 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   color: var(--color-on-accent);
   border-color: var(--color-accent);
 }
-.btn--primary:hover  { background: var(--color-accent-hv); border-color: var(--color-accent-hv); }
-.btn--primary:active { opacity: .8; }
+.btn--primary:hover  { background: var(--color-accent-hv); border-color: var(--color-accent-hv); color: var(--color-on-accent); }
+.btn--primary:active { opacity: .8; color: var(--color-on-accent); }
 
 .btn--secondary {
   background: transparent;
