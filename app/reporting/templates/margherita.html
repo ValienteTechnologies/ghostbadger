@@ -1,0 +1,244 @@
+<div id="header" data-sysreptor-generated="page-header" data-sysreptor-rendersections="always">
+    <div id="header-left">
+      <div id="header-logo">
+        <img src="/assets/name/header-logo.png" alt="logo" />
+      </div>
+      <div id="header-title">Security Maximale</div>
+    </div>
+    <div id="header-right">
+      <span class="highlight">Security Maximale GmbH</span><br>
+      Example Street 47 | 4771 Example<br>
+      FN 12345 v | District Court Example<br>
+    </div>
+  </div>
+  
+  <section id="page-cover" data-sysreptor-generated="page-cover">
+    <div id="page-cover-background">
+      <img id="page-cover-background-img" src="/assets/name/background.jpg" alt="background">
+    </div>
+  
+    <img id="page-cover-logo" src="/assets/name/logo-transparent.png" alt="logo">
+  
+    <div id="page-cover-infobox">
+      <h1 id="page-cover-title">{{ report.title }}</h1>
+    </div>
+  
+    <div id="page-cover-customer">
+      <p>
+        <strong>Customer:</strong><br>
+        <strong><span class="highlight">{{ report.customer }}</span></strong><br>
+        {{ report.report_date }}<br>
+        v<template v-if="report.document_history.length > 0">
+          {{ report.document_history[report.document_history.length - 1].version }}
+        </template>
+        <template v-else>0.0</template>
+      </p>
+    </div>
+  
+    <div id="page-cover-contact">
+      <strong>Contact:</strong><br>
+      {{ report.lead_pentester.name }}<br>
+      {{ report.lead_pentester.phone }}<br>
+      <strong><a :href="'mailto:' + report.lead_pentester.email" class="highlight">{{ report.lead_pentester.email }}</a></strong>
+    </div>
+    <pagebreak />
+  </section>
+  
+  
+  <table-of-contents id="toc" v-slot="tocItems">
+    <h1>Table of Contents</h1>
+    <ul>
+      <li v-for="item in tocItems" :class="'toc-level' + item.level">
+        <ref :to="item.id" />
+      </li>
+    </ul>
+    <pagebreak />
+  </table-of-contents>
+  
+  
+  
+  <section id="section-executive-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Executive Summary">
+    <h1 id="management-summary" class="in-toc">Executive Summary</h1>
+    <markdown :text="report.executive_summary" />
+    <pagebreak />
+  </section>
+  
+  <section id="section-scope" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Methodology and Scope">
+    <h1 id="scope" class="in-toc">Methodology and Scope</h1>
+    <markdown :text="report.scope" />
+    <pagebreak />
+  </section>
+  
+  <section id="section-findings-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Vulnerability Overview">
+    <h1 id="findings-summary" class="in-toc">Vulnerability Overview</h1>
+    <p>
+      In the course of this penetration test
+      <comma-and-join>
+        <template #critical v-if="finding_stats.count_critical > 0"><strong class="risk-critical">{{ finding_stats.count_critical }} Critical</strong></template>
+        <template #high v-if="finding_stats.count_high > 0"><strong class="risk-high">{{ finding_stats.count_high }} High</strong></template>
+        <template #medium v-if="finding_stats.count_medium > 0"><strong class="risk-medium">{{ finding_stats.count_medium }} Medium</strong></template>
+        <template #low v-if="finding_stats.count_low > 0"><strong class="risk-low">{{ finding_stats.count_low }} Low</strong></template>
+        <template #info v-if="finding_stats.count_info > 0"><strong class="risk-info">{{ finding_stats.count_info }} Info</strong></template>
+      </comma-and-join>
+      vulnerabilities were identified:
+    </p>
+  
+    <figure>
+      <chart :width="15" :height="10" :config="{
+          type: 'bar', 
+          data: {
+              labels: ['Critical', 'High', 'Medium', 'Low', 'Info'],
+              datasets: [{
+                  data: [
+                      finding_stats.count_critical,
+                      finding_stats.count_high,
+                      finding_stats.count_medium,
+                      finding_stats.count_low,
+                      finding_stats.count_info
+                  ],
+                  backgroundColor: [
+                      cssvar('--color-risk-critical'), 
+                      cssvar('--color-risk-high'), 
+                      cssvar('--color-risk-medium'), 
+                      cssvar('--color-risk-low'), 
+                      cssvar('--color-risk-info')
+                  ],
+              }]
+          },
+          options: {
+              scales: {y: {beginAtZero: true, ticks: {precision: 0}}}, 
+              plugins: {legend: {display: false}},
+          }
+      }" />
+      <figcaption id="distribution-of-identified-vulnerabilities">Distribution of identified vulnerabilities</figcaption>
+    </figure>
+  
+    <table class="finding-summary-table">
+      <thead>
+        <tr>
+          <th style="width: auto;">Vulnerability</th>
+          <th style="width: 6em;" align="center">Criticality</th>
+          <th v-if="report.is_retest" style="width: 10em;" align="center">Remediation Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="finding in findings">
+          <td>
+            <ref :to="finding.id">{{ finding.title }}</ref>
+          </td>
+          <td align="center">
+            <ref :to="finding.id" :class="'risk-' + finding.cvss.level">{{ lodash.capitalize(finding.cvss.level) }}</ref>
+          </td>
+          <td v-if="report.is_retest" align="center">
+            <ref :to="finding.id" :class="'status-' + finding.retest_status.value">{{ finding.retest_status.label }}</ref>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <pagebreak />
+  </section>
+  
+  
+  <section id="findings-list">
+    <div v-for="(finding, findingIndex) in findings" :id="'findingsection-' + finding.id" data-sysreptor-rendersections="choosable" :data-sysreptor-rendersections-name="'Finding: ' + finding.title">
+      <h2 :id="finding.id" class="in-toc finding-title" :data-toc-title="finding.title + ' (' + capitalize(finding.cvss.level) + ')'">{{ finding.title }}</h2>
+      <div>
+        <template v-if="report.is_retest || finding.retest_status.value !== 'open'">
+          <strong>Remediation Status: </strong><span :class="'status-' + finding.retest_status.value">{{ finding.retest_status.label }}</span><br>
+        </template>
+        <strong>Criticality: </strong><span :class="'risk-' + finding.cvss.level">{{ capitalize(finding.cvss.level) }}</span><br>
+        <strong>CVSS-Score: </strong>
+        <span :class="'risk-' + finding.cvss.level">
+          <a v-if="finding.cvss.vector.startsWith('CVSS:3.1')" :href="'https://www.first.org/cvss/calculator/3.1#' + finding.cvss.vector" class="link-none">{{ finding.cvss.score}}</a>
+          <a v-else-if="finding.cvss.vector.startsWith('CVSS:3.0')" :href="'https://www.first.org/cvss/calculator/3.0#' + finding.cvss.vector" class="link-none">{{ finding.cvss.score }}</a>
+          <span v-else>{{ finding.cvss.score }}</span>
+        </span><br>
+        <template v-if="finding.affected_components && finding.affected_components.length > 0">
+          <strong>Affects: </strong>
+          <markdown v-if="finding.affected_components.length == 1" :text="finding.affected_components[0]" class="markdown-inline" />
+          <ul v-else class="location-ul">
+            <li v-for="component in finding.affected_components">
+              <markdown :text="component" class="markdown-inline" />
+            </li>
+          </ul>
+        </template>
+        <template v-if="finding.short_recommendation">
+          <strong>Recommendation: </strong>
+          <markdown :text="finding.short_recommendation" class="markdown-inline" /><br>
+        </template>
+      </div>
+  
+      <div>
+        <h3>Overview</h3>
+        <markdown :text="finding.summary" />
+      </div>
+  
+      <div v-if="finding.retest_notes">
+        <h3>Remarks on Remediation Status</h3>
+        <markdown :text="finding.retest_notes" />
+      </div>
+  
+      <div>
+        <h3 :id="finding.id + '-description'">Description</h3>
+        <markdown :text="finding.description" />
+      </div>
+  
+      <div>
+        <h3 :id="finding.id + '-recommendation'">Recommendation</h3>
+        <markdown :text="finding.recommendation" />
+      </div>
+  
+      <div v-if="finding.references && finding.references.length > 0">
+        <h3>Additional Information</h3>
+        <ul>
+          <li v-for="reference in finding.references">
+            <a :href="reference">{{ reference }}</a>
+          </li>
+        </ul>
+      </div>
+  
+      <pagebreak />
+    </div>
+  </section>
+  
+  
+  <section>
+    <h1 id="document-history" class="in-toc">List of Changes</h1>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 4em;" align="center">Version</th>
+          <th style="width: 6em;" align="center">Date</th>
+          <th style="width: auto;">Description</th>
+          <th style="width: 12em;">Author</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in report.document_history">
+          <td align="center">{{ item.version }}</td>
+          <td align="center">{{ item.date }}</td>
+          <td>{{ item.description }}</td>
+          <td>
+            <comma-and-join>
+              <template v-for="author in item.authors" #[author]>{{ author }}</template>
+            </comma-and-join>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  
+  <markdown>
+    # Disclaimer {#disclaimer .in-toc}
+  
+    Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+  </markdown>
+  
+  <markdown>
+    # Imprint {#imprint .in-toc}
+  
+    Security Maximale GmbH<br>
+    Example Street 47 | 4711 Example<br>
+    FN 12345 v | District Court Example<br>
+  </markdown>
+  
