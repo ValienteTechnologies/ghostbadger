@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-_TEMPLATES_DIR = Path(__file__).parent / "templates"
-_ASSETS_DIR    = Path(__file__).parent / "assets"
+_TEMPLATES_DIR = Path(__file__).parent / "resources" / "templates"
+_ASSETS_DIR    = Path(__file__).parent / "resources" / "assets"
 
 
 @dataclass(frozen=True)

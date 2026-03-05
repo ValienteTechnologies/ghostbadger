@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ..ghostwriter import GhostwriterClient, GhostwriterError
 
-_EVIDENCE_DIR = Path(__file__).parent / "assets" / "_evidence"
+_EVIDENCE_DIR = Path(__file__).parent / "resources" / "assets" / "_evidence"
 
 
 def local_path(evidence_path: str) -> Path:
