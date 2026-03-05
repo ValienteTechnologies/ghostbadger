@@ -7,12 +7,12 @@
 
 ---
 
+> [!NOTE]  
+> This tool was developed for our specific internal workflows. It is provided "as-is" without any guarantee or formal support. Use it at your own risk and expect to customize it to fit your specific needs. We decided to polish the code, modularize the integration, and release it to the community.
+
 ### The Blog Post
 
 https://valientetechnologies.com/blog/posts/introducing-ghostbadger/
-
-> [!NOTE]  
-> This tool was developed for our specific internal workflows. It is provided "as-is" without any guarantee or formal support. Use it at your own risk and expect to customize it to fit your specific needs. We decided to polish the code, modularize the integration, and release it to the community.
 
 > [!IMPORTANT]
 > Sessions are not persisted server-side — they are kept only in the client cookie. Cookie expiry is derived from the Ghostwriter JWT token (API key). Make sure to set a sufficiently long expiry when creating the API key in Ghostwriter, otherwise your session will expire mid-use.
