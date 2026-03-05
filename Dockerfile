@@ -63,4 +63,4 @@ ENV PLAYWRIGHT_CHROMIUM_NO_SANDBOX=1
 EXPOSE 80
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:80", "--workers", "4", "--timeout", "180", "wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:80", "--workers", "1", "--worker-class", "gthread", "--threads", "8", "--timeout", "180", "wsgi:application"]

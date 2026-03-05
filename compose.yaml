@@ -1,5 +1,6 @@
 services:
   ghostbadger:
+    container_name: ghostbadger
     image: ghcr.io/valientetechnologies/ghostbadger:latest
     ports:
       - "80:80"
