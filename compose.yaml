@@ -11,5 +11,5 @@ services:
       - VAULTWARDEN_COLLECTION_ID=${VAULTWARDEN_COLLECTION_ID}
     volumes:
       # Seeded from image defaults on first run — edit freely on the host.
-      - ./reporting:/app/app/reporting/resources
+      - ./resources:/app/reporting/resources
     restart: unless-stopped

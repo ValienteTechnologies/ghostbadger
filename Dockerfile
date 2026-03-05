@@ -39,17 +39,22 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install Playwright Chromium + all its system dependencies
 RUN playwright install --with-deps chromium
 
-COPY . .
+# Flask package contents go directly to /app/ (not /app/app/)
+COPY app/ .
+COPY wsgi.py entrypoint.sh .
 
-# Copy built JS artifacts from js-builder
-COPY --from=js-builder /build/packages/rendering/dist/ ./packages/rendering/dist/
-COPY --from=js-builder /build/packages/bitwarden/node_modules/ ./packages/bitwarden/node_modules/
+# packages/ lives at /packages/ — pipeline.py and vaultwarden.py both resolve
+# project root via Path(__file__).parent[s] which lands at / from inside /app/
+COPY --from=js-builder /build/packages/rendering/dist/ /packages/rendering/dist/
+COPY --from=js-builder /build/packages/bitwarden/node_modules/ /packages/bitwarden/node_modules/
 
 # Save defaults so entrypoint can seed bind-mounted directories on first run
-RUN cp -r app/reporting/resources /app/defaults/reporting_resources
+RUN mkdir -p /app/defaults && cp -r /app/reporting/resources /app/defaults/reporting_resources
 
 RUN chmod +x entrypoint.sh
 
+# / must be on PYTHONPATH so `from app import create_app` resolves /app/ as the package
+ENV PYTHONPATH=/
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 # Required when running as root (default in Docker)
