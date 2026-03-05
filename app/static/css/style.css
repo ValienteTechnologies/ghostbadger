@@ -187,12 +187,7 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 }
 .field__row .field__input { flex: 1; }
 
-.field__action {
-  flex-shrink: 0;
-  padding: .5rem .625rem;
-  font-size: 1rem;
-  line-height: 1;
-}
+.field__action { flex-shrink: 0; }
 
 .field__input::placeholder { color: var(--color-muted); opacity: .6; }
 

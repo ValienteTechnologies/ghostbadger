@@ -99,14 +99,14 @@
           <label class="field__label" for="export-owner-pw">Owner password</label>
           <div class="field__row">
             <input class="field__input" type="password" id="export-owner-pw" placeholder="Required">
-            <button class="btn btn--secondary field__action" id="randomize-owner-pw" title="Generate password">↺</button>
+            <button class="btn btn--secondary btn--sm field__action" id="randomize-owner-pw" title="Generate password">↺</button>
           </div>
         </div>
         <div class="field">
           <label class="field__label" for="export-user-pw">User password</label>
           <div class="field__row">
             <input class="field__input" type="password" id="export-user-pw" placeholder="Required">
-            <button class="btn btn--secondary field__action" id="randomize-user-pw" title="Generate password">↺</button>
+            <button class="btn btn--secondary btn--sm field__action" id="randomize-user-pw" title="Generate password">↺</button>
           </div>
         </div>
 
@@ -154,11 +154,11 @@
               <span class="export-step__num">4</span>
               <span class="export-step__label">Download PDF</span>
             </div>
-            <a class="btn btn--primary btn--sm btn--full" id="pdf-download-btn">Download PDF</a>
+            <a class="btn btn--primary btn--full" id="pdf-download-btn">Download PDF</a>
           </div>
         </div>
         {% else %}
-        <a class="btn btn--primary" id="pdf-download-btn" hidden>Download PDF</a>
+        <a class="btn btn--primary btn--full" id="pdf-download-btn" hidden>Download PDF</a>
         {% endif %}
       </div>
     </section>
@@ -225,7 +225,7 @@
       <p class="modal__hint">Credentials are kept in your session only — never stored on disk.</p>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--primary" id="vw-modal-submit">Connect</button>
+      <button class="btn btn--primary btn--full" id="vw-modal-submit">Connect</button>
     </div>
   </div>
 </div>
