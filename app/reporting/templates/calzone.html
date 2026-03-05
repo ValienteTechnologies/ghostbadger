@@ -1,6 +1,6 @@
 <div data-sysreptor-generated="page-header" id="header" data-sysreptor-rendersections="always">
     <div id="header-right">
-        <img src="/assets/name/logo-transparent.png" alt="logo" />
+        <img src="logo-transparent.png" alt="logo" />
     </div>
 </div>
 
@@ -8,8 +8,6 @@
     <div id="footer-left"><em>CONFIDENTIAL</em></div>
     <div id="footer-center">{{ report.title }}</div>
 </div>
-
-<div v-if="report.draft" id="watermark">DRAFT</div>
 
 
 
@@ -21,32 +19,27 @@
 
     <div class="page-cover-imprint">
         <p>
-            <strong>Security Maximale GmbH</strong><br>
-            Example Street 47<br>
-            4711 Example<br>
-            FN 12345 v | D.C. Example
+            <strong>{{ report.company.name }}</strong><br>
+            {{ report.company.address }}
         </p>
-        <p :set="lead_pentester = pentesters.find(p => p.roles.includes('lead'))">
-            <template v-if="lead_pentester">
+        <template v-for="member in report.team" :key="member.email">
+            <p v-if="member.role === 'Assessment Lead'">
                 <strong>Contact:</strong><br>
-                {{ lead_pentester.name }}<br>
-                <span v-if="lead_pentester.phone">Phone: {{ lead_pentester.phone }}<br></span>
-                <span v-if="lead_pentester.mobile">Mobile: {{ lead_pentester.mobile}}<br></span>
-                <span v-if="lead_pentester.email">Mail: {{ lead_pentester.email }}<br></span>
-            </template>
-        </p>
+                <span v-if="member.name">{{ member.name }}<br></span>
+                <span v-if="member.phone">Phone: {{ member.phone }}<br></span>
+                <span v-if="member.email">Mail: {{ member.email }}<br></span>
+            </p>
+        </template>
     </div>
 
     <div class="page-cover-recipient">
         <p class="page-cover-address">
-            <strong>{{ report.customer_name }}</strong><br>
-            Attn. {{ report.receiver_name }}<br>
-            {{ report.customer_address.street }}<br>
-            {{ report.customer_address.city }}
+            <strong>{{ report.client.name }}</strong><br>
+            Attn. {{ report.recipient.name }}<br>
+            {{ report.client.address }}
         </p>
         <p class="page-cover-meta">
-            Example City, {{ formatDate(report.report_date, 'long') }}<br>
-            Report Version: {{ report.report_version }}
+            {{ report.report_date }}
         </p>
     </div>
     <pagebreak />
@@ -77,7 +70,6 @@
 </list-of-figures>
 
 
-
 <section>
     <h1 id="document-control" class="in-toc numbered">Document Control</h1>
 
@@ -89,34 +81,13 @@
                 <th style="width: auto;">Details</th>
                 <th style="width: 8em;" align="center">Role</th>
             </tr>
-            <tr v-for="u in pentesters">
+            <tr v-for="u in report.team">
                 <td>{{ u.name }}</td>
                 <td>
-                    <span v-if="u.mobile">Mobile: {{ u.mobile }}<br></span>
+                    <span v-if="u.phone">Phone: {{ u.phone }}<br></span>
                     <span v-if="u.email">E-Mail: {{ u.email }}</span>
                 </td>
-                <td align="center">
-                    <comma-and-join comma=", " and=", ">
-                        <template v-for="role in u.roles" #[role]>{{ {lead: 'Lead Pentester', pentester: 'Pentester',
-                            reviewer: 'Reviewer'}[role] || lodash.capitalize(role) }}</template>
-                    </comma-and-join>
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <div>
-        <h2 id="list-of-changes" class="in-toc numbered">List of Changes</h2>
-        <table>
-            <tr>
-                <th style="width: 4em;" align="center">Version</th>
-                <th style="width: auto;">Description</th>
-                <th style="width: 7em;" align="center">Date</th>
-            </tr>
-            <tr v-for="version in report.list_of_changes">
-                <td align="center">{{ version.version }}</td>
-                <td>{{ version.description }}</td>
-                <td align="center">{{ formatDate(version.date, 'medium') }}</td>
+                <td align="center">{{ u.role }}</td>
             </tr>
         </table>
     </div>
@@ -124,17 +95,12 @@
 </section>
 
 
-
-
-
-
-
 <section id="section-executive-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Executive Summary">
     <h1 id="executive-summary" class="in-toc numbered">Executive Summary</h1>
 
     <div>
         <h2 id="executive-summary-overview" class="in-toc numbered">Overview</h2>
-        <markdown v-if="report.executive_summary" :text="report.executive_summary" />
+        <markdown v-if="report.extra_fields && report.extra_fields.executive_summary" :text="report.extra_fields.executive_summary" />
     </div>
 
     <div>
@@ -150,18 +116,18 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="finding in findings" class="table-row-link" :class="'risk-bg-' + finding.cvss.level">
+                <tr v-for="finding in finding_groups[0].findings" class="table-row-link" :class="'risk-bg-' + finding.cvss.level">
                     <td align="center">
-                        <ref :to="finding.id">{{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}</ref>
+                        <ref :to="'f' + finding.id">{{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ finding_groups[0].findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}</ref>
                     </td>
                     <td align="center">
-                        <ref :to="finding.id">{{ finding.cvss.score }}</ref>
+                        <ref :to="'f' + finding.id">{{ finding.cvss.score }}</ref>
                     </td>
                     <td>
-                        <ref :to="finding.id">{{ finding.title }}</ref>
+                        <ref :to="'f' + finding.id">{{ finding.title }}</ref>
                     </td>
                     <td align="center">
-                        <ref :to="finding.id" class="ref-page" />
+                        <ref :to="'f' + finding.id" class="ref-page" />
                     </td>
                 </tr>
             </tbody>
@@ -173,20 +139,20 @@
         <p>
             In the course of this penetration test
             <comma-and-join>
-                <template #critical v-if="finding_stats.count_critical > 0">
-                    <strong class="risk-critical">{{ finding_stats.count_critical }} Critical</strong>
+                <template #critical v-if="report.totals.findings_critical > 0">
+                    <strong class="risk-critical">{{ report.totals.findings_critical }} Critical</strong>
                 </template>
-                <template #high v-if="finding_stats.count_high > 0">
-                    <strong class="risk-high">{{ finding_stats.count_high }} High</strong>
+                <template #high v-if="report.totals.findings_high > 0">
+                    <strong class="risk-high">{{ report.totals.findings_high }} High</strong>
                 </template>
-                <template #medium v-if="finding_stats.count_medium > 0">
-                    <strong class="risk-medium">{{ finding_stats.count_medium }} Medium</strong>
+                <template #medium v-if="report.totals.findings_medium > 0">
+                    <strong class="risk-medium">{{ report.totals.findings_medium }} Medium</strong>
                 </template>
-                <template #low v-if="finding_stats.count_low > 0">
-                    <strong class="risk-low">{{ finding_stats.count_low }} Low</strong>
+                <template #low v-if="report.totals.findings_low > 0">
+                    <strong class="risk-low">{{ report.totals.findings_low }} Low</strong>
                 </template>
-                <template #info v-if="finding_stats.count_info > 0">
-                    <strong class="risk-info">{{ finding_stats.count_info }} Info</strong>
+                <template #info v-if="report.totals.findings_info > 0">
+                    <strong class="risk-info">{{ report.totals.findings_info }} Info</strong>
                 </template>
             </comma-and-join>
             vulnerabilities were identified:
@@ -194,28 +160,28 @@
 
         <figure>
             <chart :width="15" :height="10" :config="{
-                type: 'bar', 
+                type: 'bar',
                 data: {
                     labels: ['Critical', 'High', 'Medium', 'Low', 'Info'],
                     datasets: [{
                         data: [
-                            finding_stats.count_critical,
-                            finding_stats.count_high,
-                            finding_stats.count_medium,
-                            finding_stats.count_low,
-                            finding_stats.count_info
+                            report.totals.findings_critical,
+                            report.totals.findings_high,
+                            report.totals.findings_medium,
+                            report.totals.findings_low,
+                            report.totals.findings_info
                         ],
                         backgroundColor: [
-                            cssvar('--color-risk-critical'), 
-                            cssvar('--color-risk-high'), 
-                            cssvar('--color-risk-medium'), 
-                            cssvar('--color-risk-low'), 
+                            cssvar('--color-risk-critical'),
+                            cssvar('--color-risk-high'),
+                            cssvar('--color-risk-medium'),
+                            cssvar('--color-risk-low'),
                             cssvar('--color-risk-info')
                         ],
                     }]
                 },
                 options: {
-                    scales: {y: {beginAtZero: true, ticks: {precision: 0}}}, 
+                    scales: {y: {beginAtZero: true, ticks: {precision: 0}}},
                     plugins: {legend: {display: false}},
                 }
             }" />
@@ -226,57 +192,55 @@
 </section>
 
 
-
 <section>
     <h1 id="methodology" class="in-toc numbered">Methodology</h1>
-    <p>
-        This is a static text built into the design template. If this text changes from report to report, you can
-        easily make it dynamic by adding a new report field and replacing the text by the used variable, e.g.:
-        <code v-pre>
-            <div>{{ report.methodology }}</div>
-        </code>
-    </p>
-
-    <markdown>
-        ## Objective {#objective .in-toc.numbered}
-        This is also a static text. This time it's written in markdown.
-
-        Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
-        * Lorem ipsum dolor sit amet
-        * consetetur sadipscing elitr
-        * sed diam nonumy eirmod tempor
-        * Stet clita kasd gubergren
-        * dolore magna aliquyam erat
-    </markdown>
+    <div>
+        <markdown v-if="report.extra_fields && report.extra_fields.methodology" :text="report.extra_fields.methodology" />
+    </div>
 
     <div>
         <h2 id="scope" class="in-toc numbered">Scope</h2>
-        <p>Here comes a static text with dynamic components:</p>
         <p>
-            Lorem ipsum dolor sit amet, consetetur, from <strong>{{ formatDate(report.start_date, 'medium') }} to {{
-                formatDate(report.end_date, 'medium') }}</strong> no sea takimata sanctus est Lorem ipsum dolor sit
-            amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sea takimata sanctus est Lorem ipsum dolor
-            sit amet. Lorem ipsum dolor sit amet, consetetur, <strong>{{ report.duration }}</strong> consetetur
-            sadipscing elitr, sea takimata sanctus est Lorem ipsum dolor sit amet.
+            <strong>Start:</strong> {{ report.project.start_date }}
+            &nbsp;|&nbsp;
+            <strong>End:</strong> {{ report.project.end_date }}
         </p>
 
-        <markdown :text="report.scope" />
+        <markdown v-if="report.extra_fields && report.extra_fields.scope_text" :text="report.extra_fields.scope_text" />
+
+        <div v-if="report.scope && report.scope.filter(s => !s.disallowed).length">
+            <h3>In-Scope Systems</h3>
+            <ul>
+                <li v-for="group in report.scope.filter(s => !s.disallowed)">
+                    <strong v-if="group.name">{{ group.name }}:</strong>
+                    <span v-if="group.scope && group.scope.length">{{ group.scope.join(', ') }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <div v-if="report.scope && report.scope.filter(s => s.disallowed).length">
+            <h3>Out-of-Scope Systems</h3>
+            <ul>
+                <li v-for="group in report.scope.filter(s => s.disallowed)">
+                    <strong v-if="group.name">{{ group.name }}:</strong>
+                    <span v-if="group.scope && group.scope.length">{{ group.scope.join(', ') }}</span>
+                </li>
+            </ul>
+        </div>
     </div>
 
-
-    <div v-if="report.provided_users">
+    <div v-if="report.extra_fields && report.extra_fields.provided_users">
         <h2 id="provided-users" class="in-toc numbered">User Accounts and Permissions</h2>
-        <markdown :text="report.provided_users" />
+        <markdown :text="report.extra_fields.provided_users" />
     </div>
     <pagebreak />
 </section>
 
 
-
 <section>
     <h1 id="findings" class="in-toc numbered">Findings</h1>
 
-    <div v-for="finding in findings" :id="'findingsection-' + finding.id" data-sysreptor-rendersections="choosable" :data-sysreptor-rendersections-name="'Finding: ' + finding.title">
+    <div v-for="finding in finding_groups[0].findings" :id="'findingsection-' + finding.id" data-sysreptor-rendersections="choosable" :data-sysreptor-rendersections-name="'Finding: ' + finding.title">
         <table class="finding-header">
             <colgroup>
                 <col class="table-key" />
@@ -284,9 +248,8 @@
             </colgroup>
             <tr>
                 <th colspan="2">
-                    <h2 :id="finding.id" class="in-toc text-center">
-                        {{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ findings.filter(f =>
-                        f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}:
+                    <h2 :id="'f' + finding.id" class="in-toc text-center">
+                        {{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ finding_groups[0].findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}:
                         {{ finding.title }}
                     </h2>
                 </th>
@@ -307,57 +270,65 @@
             <tr>
                 <td class="table-key">Target</td>
                 <td>
-                    <span v-if="finding.affected_components.length === 0">-</span>
-                    <span v-else-if="finding.affected_components.length === 1">{{ finding.affected_components[0]
-                        }}</span>
-                    <ul v-else :class="{'finding-systems': true, 'finding-systems-cols': finding.affected_components.length >= 4}">
-                        <li v-for="c in finding.affected_components">{{ c }}</li>
-                    </ul>
+                    <markdown v-if="finding.affected_entities" :text="finding.affected_entities" />
+                    <span v-else>-</span>
                 </td>
             </tr>
-            <tr>
+            <tr v-if="finding.references">
                 <td class="table-key">References</td>
                 <td>
-                    <span v-if="finding.references.length === 0">-</span>
-                    <span v-else-if="finding.references.length === 1">{{ finding.references[0] }}</span>
-                    <ul v-else>
-                        <li v-for="r in finding.references">{{ r }}</li>
-                    </ul>
+                    <markdown :text="finding.references" />
                 </td>
             </tr>
         </table>
 
         <h3>Overview</h3>
-        <markdown :text="finding.summary" />
-
-        <h3>Details</h3>
         <markdown :text="finding.description" />
+
+        <h3>Impact</h3>
+        <markdown :text="finding.impact" />
+
+        <div v-if="finding.replication_steps">
+            <h3>Replication Steps</h3>
+            <markdown :text="finding.replication_steps" />
+        </div>
 
         <h3>Recommendation</h3>
         <markdown :text="finding.recommendation" />
+
+        <div v-if="finding.evidence && finding.evidence.length">
+            <h3>Evidence</h3>
+            <div v-for="ev in finding.evidence" style="margin-bottom: 2em; text-align: center;">
+                <img
+                    :src="ev.path"
+                    :alt="ev.caption || ev.friendly_name || ev.path"
+                    style="max-width: 100%; max-height: 500px; border: 1px solid #ccc; margin-bottom: 0.5em;" />
+                <div style="font-size: 0.9em;">
+                    <strong v-if="ev.friendly_name">{{ ev.friendly_name }}</strong>
+                    <span v-else-if="ev.caption">{{ ev.caption }}</span>
+                    <div v-if="ev.description && ev.description.trim()" style="margin-top: 0.25em;">
+                        {{ ev.description }}
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <pagebreak />
     </div>
 </section>
 
 
-<markdown>
-    # Disclaimer {#disclaimer .in-toc.numbered}
-
-    Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+<section>
+    <h1 id="disclaimer" class="in-toc numbered">Disclaimer</h1>
+    <markdown v-if="report.extra_fields && report.extra_fields.disclaimer" :text="report.extra_fields.disclaimer" />
     <pagebreak />
-</markdown>
+</section>
 
 
-<section class="appendix">
+<section class="appendix" v-if="report.extra_fields && report.extra_fields.appendix_sections && report.extra_fields.appendix_sections.length">
     <h1 id="appendix" class="in-toc numbered">Appendix</h1>
-    <markdown>
-        ## Static Appendix Section {.in-toc.numbered}
-        TODO: Appendix section content
-    </markdown>
-
-    <div v-if="report.appendix_sections.length > 0" v-for="appendix_section in report.appendix_sections">
-        <h2 class="in-toc numbered">{{ appendix_section.title }}</h2>
-        <markdown :text="appendix_section.content" />
+    <div v-for="section in report.extra_fields.appendix_sections">
+        <h2 class="in-toc numbered">{{ section.title }}</h2>
+        <markdown :text="section.content" />
     </div>
 </section>
