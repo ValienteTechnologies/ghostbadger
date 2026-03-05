@@ -182,18 +182,27 @@ class VaultwardenClient:
         password: str | None = None,
     ) -> dict:
         """Create a Text Send and return dict with accessUrl."""
+        import datetime
+
         self._ensure_unlocked()
 
-        cmd = [
-            "send", "create",
-            "--name", name,
-            "--text", text,
-            "--deleteInDays", str(delete_days),
-        ]
-        if password:
-            cmd += ["--password", password]
+        deletion_date = (
+            datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(days=delete_days)
+        ).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
-        raw = self._run_bw(*cmd)
+        send_obj: dict = {
+            "name": name,
+            "type": 0,
+            "text": {"text": text, "hidden": False},
+            "deletionDate": deletion_date,
+            "disabled": False,
+        }
+        if password:
+            send_obj["password"] = password
+
+        encoded = self._run_bw("encode", stdin_data=json.dumps(send_obj))
+        raw = self._run_bw("send", "create", encoded)
         try:
             return json.loads(raw)
         except json.JSONDecodeError as exc:

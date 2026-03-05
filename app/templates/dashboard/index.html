@@ -117,33 +117,31 @@
             <div class="export-step__heading">
               <span class="export-step__num">1</span>
               <span class="export-step__label">Save to Vaultwarden</span>
-              <span class="export-step__check" id="step-vault-check" hidden>&#10003;</span>
             </div>
-            <button class="btn btn--secondary btn--sm" id="btn-save-vault">Save to Vault</button>
+            <button class="btn btn--secondary btn--sm btn--full" id="btn-save-vault">Save to Vault</button>
           </div>
 
           <!-- Step 2: Create Send -->
-          <div class="export-step export-step--disabled" id="step-send">
+          <div class="export-step" id="step-send" hidden>
             <div class="export-step__heading">
               <span class="export-step__num">2</span>
               <span class="export-step__label">Create Send Link</span>
-              <span class="export-step__check" id="step-send-check" hidden>&#10003;</span>
             </div>
             <div class="expiry-selector" id="expiry-selector">
               <button class="expiry-btn" data-days="30">30d</button>
               <button class="expiry-btn expiry-btn--active" data-days="14">14d</button>
               <button class="expiry-btn" data-days="1">1d</button>
             </div>
-            <button class="btn btn--secondary btn--sm" id="btn-create-send">Create Send Link</button>
+            <button class="btn btn--secondary btn--sm btn--full" id="btn-create-send">Create Send Link</button>
           </div>
 
           <!-- Step 3: Download -->
-          <div class="export-step export-step--disabled" id="step-download">
+          <div class="export-step" id="step-download" hidden>
             <div class="export-step__heading">
               <span class="export-step__num">3</span>
               <span class="export-step__label">Download PDF</span>
             </div>
-            <a class="btn btn--primary btn--sm" id="pdf-download-btn" hidden>Download PDF</a>
+            <a class="btn btn--primary btn--sm btn--full" id="pdf-download-btn">Download PDF</a>
           </div>
         </div>
         {% else %}
@@ -260,8 +258,6 @@
   const stepDownload  = document.getElementById("step-download");
   const btnSaveVault  = document.getElementById("btn-save-vault");
   const btnCreateSend = document.getElementById("btn-create-send");
-  const stepVaultCheck = document.getElementById("step-vault-check");
-  const stepSendCheck  = document.getElementById("step-send-check");
   const vwConnectBtn  = document.getElementById("vw-connect-btn");
 
   let _activeReportId   = null;
@@ -372,8 +368,8 @@
     pdfIframe.hidden    = true;
     pdfProgress.hidden  = true;
     pdfStatusbar.hidden = true;
-    if (pdfDownloadBtn) pdfDownloadBtn.hidden = true;
-    if (exportSteps)    exportSteps.hidden    = true;
+    if (pdfDownloadBtn && !vwConfigured) pdfDownloadBtn.hidden = true;
+    if (exportSteps) { exportSteps.hidden = true; resetVaultSteps(); }
     pdfCloseBtn.hidden  = true;
     pdfIdle.hidden      = false;
   });
@@ -405,8 +401,8 @@
     pdfProgress.hidden      = false;
     pdfIframe.hidden        = true;
     pdfIframe.src           = "";
-    if (pdfDownloadBtn) pdfDownloadBtn.hidden = true;
-    if (exportSteps)    { exportSteps.hidden = true; resetVaultSteps(); }
+    if (pdfDownloadBtn && !vwConfigured) pdfDownloadBtn.hidden = true;
+    if (exportSteps) { exportSteps.hidden = true; resetVaultSteps(); }
     pdfCloseBtn.hidden      = true;
     pdfStatusbar.hidden     = true;
     statusbarMsgs.innerHTML = "";
@@ -643,14 +639,11 @@
   // ── Vaultwarden: export steps ──────────────────────────────────
   function resetVaultSteps() {
     if (!vwConfigured) return;
-    stepVault.classList.remove("export-step--disabled");
-    stepSend.classList.add("export-step--disabled");
-    stepDownload.classList.add("export-step--disabled");
-    if (stepVaultCheck)  stepVaultCheck.hidden = true;
-    if (stepSendCheck)   stepSendCheck.hidden  = true;
-    if (pdfDownloadBtn)  pdfDownloadBtn.hidden = true;
-    if (btnSaveVault)    btnSaveVault.disabled  = false;
-    if (btnCreateSend)   btnCreateSend.disabled = false;
+    stepVault.hidden    = false;
+    stepSend.hidden     = true;
+    stepDownload.hidden = true;
+    if (btnSaveVault)  btnSaveVault.disabled  = false;
+    if (btnCreateSend) btnCreateSend.disabled = false;
   }
 
   // Expiry selector
@@ -695,11 +688,9 @@
           btnSaveVault.textContent = "Save to Vault";
           return;
         }
-        stepVaultCheck.hidden = false;
-        btnSaveVault.textContent = "Saved ✓";
         showFlash("success", "Password saved to Vaultwarden.");
-        // Enable step 2
-        stepSend.classList.remove("export-step--disabled");
+        stepVault.hidden = true;
+        stepSend.hidden  = false;
       } catch (err) {
         showFlash("error", "Vault error: " + err.message);
         btnSaveVault.disabled    = false;
@@ -713,9 +704,8 @@
     btnCreateSend.addEventListener("click", async () => {
       btnCreateSend.disabled    = true;
       btnCreateSend.textContent = "Creating…";
-      const filename = exportFilename.value || `report-${_activeReportId}.pdf`;
-      const title    = _activeReportTitle || filename;
-      const text     = `Report: ${title}\nFile: ${filename}\nPassword: ${exportUserPw.value}`;
+      const title = _activeReportTitle || exportFilename.value || `report-${_activeReportId}.pdf`;
+      const text  = exportUserPw.value;
       try {
         const resp = await fetch("/dashboard/api/vault/send", {
           method: "POST",
@@ -740,11 +730,8 @@
         } else {
           showFlash("success", "Send created.");
         }
-        stepSendCheck.hidden = false;
-        btnCreateSend.textContent = "Created ✓";
-        // Enable step 3
-        stepDownload.classList.remove("export-step--disabled");
-        pdfDownloadBtn.hidden = false;
+        stepSend.hidden     = true;
+        stepDownload.hidden = false;
         updateDownloadState();
       } catch (err) {
         showFlash("error", "Send error: " + err.message);

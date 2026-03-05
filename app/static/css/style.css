@@ -785,10 +785,6 @@ html, body {
   transition: opacity .2s;
 }
 
-.export-step--disabled {
-  opacity: .4;
-  pointer-events: none;
-}
 
 .export-step__heading {
   display: flex;
