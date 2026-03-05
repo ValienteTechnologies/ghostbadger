@@ -135,10 +135,23 @@
             <button class="btn btn--secondary btn--sm btn--full" id="btn-create-send">Create Send Link</button>
           </div>
 
-          <!-- Step 3: Download -->
-          <div class="export-step" id="step-download" hidden>
+          <!-- Step 3: Copy Send Link -->
+          <div class="export-step" id="step-copy-link" hidden>
             <div class="export-step__heading">
               <span class="export-step__num">3</span>
+              <span class="export-step__label">Copy Send Link</span>
+            </div>
+            <div class="send-link-box">
+              <input class="send-link-input" id="send-link-input" type="text" readonly>
+              <button class="btn btn--secondary btn--sm" id="btn-copy-link">Copy</button>
+            </div>
+            <button class="btn btn--ghost btn--sm btn--full" id="btn-confirm-copied">I've copied it &rarr;</button>
+          </div>
+
+          <!-- Step 4: Download -->
+          <div class="export-step" id="step-download" hidden>
+            <div class="export-step__heading">
+              <span class="export-step__num">4</span>
               <span class="export-step__label">Download PDF</span>
             </div>
             <a class="btn btn--primary btn--sm btn--full" id="pdf-download-btn">Download PDF</a>
@@ -253,12 +266,16 @@
   // ── Vaultwarden refs (may be null when not configured) ─────────
   const vwConfigured  = !!document.getElementById("export-steps");
   const exportSteps   = document.getElementById("export-steps");
-  const stepVault     = document.getElementById("step-vault");
-  const stepSend      = document.getElementById("step-send");
-  const stepDownload  = document.getElementById("step-download");
-  const btnSaveVault  = document.getElementById("btn-save-vault");
-  const btnCreateSend = document.getElementById("btn-create-send");
-  const vwConnectBtn  = document.getElementById("vw-connect-btn");
+  const stepVault      = document.getElementById("step-vault");
+  const stepSend       = document.getElementById("step-send");
+  const stepCopyLink   = document.getElementById("step-copy-link");
+  const stepDownload   = document.getElementById("step-download");
+  const btnSaveVault   = document.getElementById("btn-save-vault");
+  const btnCreateSend  = document.getElementById("btn-create-send");
+  const btnCopyLink    = document.getElementById("btn-copy-link");
+  const btnConfirmCopy = document.getElementById("btn-confirm-copied");
+  const sendLinkInput  = document.getElementById("send-link-input");
+  const vwConnectBtn   = document.getElementById("vw-connect-btn");
 
   let _activeReportId   = null;
   let _activeJobId      = null;
@@ -639,9 +656,10 @@
   // ── Vaultwarden: export steps ──────────────────────────────────
   function resetVaultSteps() {
     if (!vwConfigured) return;
-    stepVault.hidden    = false;
-    stepSend.hidden     = true;
-    stepDownload.hidden = true;
+    stepVault.hidden     = false;
+    stepSend.hidden      = true;
+    stepCopyLink.hidden  = true;
+    stepDownload.hidden  = true;
     if (btnSaveVault)  btnSaveVault.disabled  = false;
     if (btnCreateSend) btnCreateSend.disabled = false;
   }
@@ -724,20 +742,33 @@
           return;
         }
         const accessUrl = data.accessUrl || data.access_url || "";
-        if (accessUrl) {
-          await navigator.clipboard.writeText(accessUrl).catch(() => {});
-          showFlash("success", "Send link copied to clipboard!");
-        } else {
-          showFlash("success", "Send created.");
-        }
-        stepSend.hidden     = true;
-        stepDownload.hidden = false;
-        updateDownloadState();
+        sendLinkInput.value = accessUrl;
+        stepSend.hidden      = true;
+        stepCopyLink.hidden  = false;
       } catch (err) {
         showFlash("error", "Send error: " + err.message);
         btnCreateSend.disabled    = false;
         btnCreateSend.textContent = "Create Send Link";
       }
+    });
+  }
+
+  // Step 3: Copy Send Link
+  if (btnCopyLink) {
+    btnCopyLink.addEventListener("click", async () => {
+      const url = sendLinkInput.value;
+      if (!url) return;
+      await navigator.clipboard.writeText(url).catch(() => {});
+      btnCopyLink.textContent = "Copied!";
+      setTimeout(() => { btnCopyLink.textContent = "Copy"; }, 2000);
+    });
+  }
+
+  if (btnConfirmCopy) {
+    btnConfirmCopy.addEventListener("click", () => {
+      stepCopyLink.hidden = true;
+      stepDownload.hidden = false;
+      updateDownloadState();
     });
   }
 

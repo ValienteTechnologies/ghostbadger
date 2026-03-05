@@ -842,3 +842,25 @@ html, body {
   color: #fff;
   font-weight: 600;
 }
+
+/* ── Send link box ───────────────────────────────────────────── */
+.send-link-box {
+  display: flex;
+  gap: .375rem;
+  margin-bottom: .5rem;
+}
+
+.send-link-input {
+  flex: 1;
+  min-width: 0;
+  padding: .3125rem .5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: .75rem;
+  font-family: var(--font-mono, monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
