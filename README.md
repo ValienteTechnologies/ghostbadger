@@ -64,6 +64,12 @@ See [app/reporting/resources/README.md](app/reporting/resources/README.md) for f
 
 ---
 
+### Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit patches, new templates, or other improvements.
+
+---
+
 ### The Blog Post
 
 https://valientetechnologies.com/blog/posts/introducing-ghostbadger/
