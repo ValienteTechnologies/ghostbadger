@@ -1,3 +1,6 @@
+# Docker bind-mount dir (seeded at runtime, may contain user assets/evidence)
+/reporting/
+
 # development
 example_report.json
 schema.graphql
