@@ -117,7 +117,7 @@ html, body {
 .field { display: flex; flex-direction: column; gap: .375rem; }
 
 .field__label {
-  font-size: .875rem;
+  font-size: .75rem;
   font-weight: 600;
   color: var(--color-muted);
   text-transform: uppercase;
@@ -200,7 +200,7 @@ html, body {
 
 .btn--full { width: 100%; }
 .btn--disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
-.btn--sm   { padding: .3125rem .625rem; font-size: .875rem; }
+.btn--sm   { padding: .3125rem .625rem; font-size: .75rem; }
 .btn--lg   { padding: .625rem 1.25rem; font-size: .875rem; font-weight: 600; }
 
 /* ── Dashboard layout ───────────────────────────────────────── */
@@ -243,7 +243,7 @@ html, body {
 .drawer__nav { flex: 1; }
 
 .drawer__nav-label {
-  font-size: .8125rem;
+  font-size: .75rem;
   font-weight: 600;
   color: var(--color-muted);
   text-transform: uppercase;
@@ -261,7 +261,7 @@ html, body {
   border: none;
   background: transparent;
   color: var(--color-muted);
-  font-size: .9rem;
+  font-size: .875rem;
   font-family: var(--font-sans);
   cursor: pointer;
   transition: background .1s, color .1s;
@@ -374,7 +374,7 @@ html, body {
 }
 
 .dashboard__title {
-  font-size: .875rem;
+  font-size: .75rem;
   font-weight: 600;
   color: var(--color-muted);
   text-transform: uppercase;
@@ -444,7 +444,7 @@ html, body {
 }
 
 .project-card__codename {
-  font-size: .9rem;
+  font-size: .875rem;
   color: var(--color-muted);
   font-family: var(--font-mono);
 }
@@ -467,7 +467,7 @@ html, body {
 }
 
 .project-card__report-title {
-  font-size: .9375rem;
+  font-size: .875rem;
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
@@ -551,7 +551,7 @@ html, body {
 }
 
 .pdf-panel__title {
-  font-size: .875rem;
+  font-size: .75rem;
   font-weight: 600;
   color: var(--color-muted);
   text-transform: uppercase;
@@ -699,7 +699,7 @@ html, body {
 
 .modal__title {
   font-weight: 600;
-  font-size: .9375rem;
+  font-size: 1rem;
 }
 
 .modal__close {
@@ -740,23 +740,27 @@ html, body {
 }
 
 .modal-field__label {
-  font-size: .8125rem;
+  font-size: .75rem;
+  font-weight: 600;
   color: var(--color-muted);
-  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .05em;
 }
 
 .modal-field__input {
-  background: var(--color-surface-2);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
   font-size: .875rem;
-  padding: .4375rem .625rem;
+  padding: .5rem .75rem;
   width: 100%;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
 }
 .modal-field__input:focus {
-  outline: none;
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(88,166,255,.15);
 }
 
 /* ── Vaultwarden drawer ──────────────────────────────────────── */
@@ -853,13 +857,13 @@ html, body {
 .send-link-input {
   flex: 1;
   min-width: 0;
-  padding: .3125rem .5rem;
-  background: var(--color-surface);
+  padding: .375rem .625rem;
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-size: .75rem;
-  font-family: var(--font-mono, monospace);
+  font-size: .8125rem;
+  font-family: var(--font-mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
