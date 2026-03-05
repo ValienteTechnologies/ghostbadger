@@ -1,244 +1,270 @@
 <div id="header" data-sysreptor-generated="page-header" data-sysreptor-rendersections="always">
     <div id="header-left">
-      <div id="header-logo">
-        <img src="/assets/name/header-logo.png" alt="logo" />
-      </div>
-      <div id="header-title">Security Maximale</div>
+        <div id="header-logo"><img src="header-logo.png" alt="logo" /></div>
+        <div id="header-title">{{ report.company.name }}</div>
     </div>
     <div id="header-right">
-      <span class="highlight">Security Maximale GmbH</span><br>
-      Example Street 47 | 4771 Example<br>
-      FN 12345 v | District Court Example<br>
+        <span class="highlight">{{ report.company.name }}</span><br>
+        {{ report.company.address }}
     </div>
-  </div>
-  
-  <section id="page-cover" data-sysreptor-generated="page-cover">
+</div>
+
+<div v-if="!report.complete" id="watermark">DRAFT</div>
+
+
+<section id="page-cover" data-sysreptor-generated="page-cover">
     <div id="page-cover-background">
-      <img id="page-cover-background-img" src="/assets/name/background.jpg" alt="background">
+        <img id="page-cover-background-img" src="background.jpg" alt="background">
     </div>
-  
-    <img id="page-cover-logo" src="/assets/name/logo-transparent.png" alt="logo">
-  
+
+    <img id="page-cover-logo" src="logo-transparent.png" alt="logo">
+
     <div id="page-cover-infobox">
-      <h1 id="page-cover-title">{{ report.title }}</h1>
+        <h1 id="page-cover-title">{{ report.title }}</h1>
     </div>
-  
+
     <div id="page-cover-customer">
-      <p>
-        <strong>Customer:</strong><br>
-        <strong><span class="highlight">{{ report.customer }}</span></strong><br>
-        {{ report.report_date }}<br>
-        v<template v-if="report.document_history.length > 0">
-          {{ report.document_history[report.document_history.length - 1].version }}
-        </template>
-        <template v-else>0.0</template>
-      </p>
+        <p>
+            <strong>Customer:</strong><br>
+            <strong><span class="highlight">{{ report.client.name }}</span></strong><br>
+            {{ report.report_date }}
+        </p>
     </div>
-  
+
     <div id="page-cover-contact">
-      <strong>Contact:</strong><br>
-      {{ report.lead_pentester.name }}<br>
-      {{ report.lead_pentester.phone }}<br>
-      <strong><a :href="'mailto:' + report.lead_pentester.email" class="highlight">{{ report.lead_pentester.email }}</a></strong>
+        <template v-for="member in report.team" :key="member.email">
+            <template v-if="member.role === 'Assessment Lead' && member.name">
+                <strong>Contact:</strong><br>
+                {{ member.name }}<br>
+                <span v-if="member.phone">{{ member.phone }}<br></span>
+                <strong><a v-if="member.email" :href="'mailto:' + member.email" class="highlight">{{ member.email }}</a></strong>
+            </template>
+        </template>
     </div>
     <pagebreak />
-  </section>
-  
-  
-  <table-of-contents id="toc" v-slot="tocItems">
+</section>
+
+
+<table-of-contents id="toc" v-slot="tocItems">
     <h1>Table of Contents</h1>
     <ul>
-      <li v-for="item in tocItems" :class="'toc-level' + item.level">
-        <ref :to="item.id" />
-      </li>
+        <li v-for="item in tocItems" :class="'toc-level' + item.level">
+            <ref :to="item.id" />
+        </li>
     </ul>
     <pagebreak />
-  </table-of-contents>
-  
-  
-  
-  <section id="section-executive-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Executive Summary">
-    <h1 id="management-summary" class="in-toc">Executive Summary</h1>
-    <markdown :text="report.executive_summary" />
+</table-of-contents>
+
+
+<section id="section-executive-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Executive Summary">
+    <h1 id="management-summary" class="in-toc numbered">Executive Summary</h1>
+    <markdown v-if="report.extra_fields && report.extra_fields.executive_summary" :text="report.extra_fields.executive_summary" />
     <pagebreak />
-  </section>
-  
-  <section id="section-scope" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Methodology and Scope">
-    <h1 id="scope" class="in-toc">Methodology and Scope</h1>
-    <markdown :text="report.scope" />
-    <pagebreak />
-  </section>
-  
-  <section id="section-findings-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Vulnerability Overview">
-    <h1 id="findings-summary" class="in-toc">Vulnerability Overview</h1>
-    <p>
-      In the course of this penetration test
-      <comma-and-join>
-        <template #critical v-if="finding_stats.count_critical > 0"><strong class="risk-critical">{{ finding_stats.count_critical }} Critical</strong></template>
-        <template #high v-if="finding_stats.count_high > 0"><strong class="risk-high">{{ finding_stats.count_high }} High</strong></template>
-        <template #medium v-if="finding_stats.count_medium > 0"><strong class="risk-medium">{{ finding_stats.count_medium }} Medium</strong></template>
-        <template #low v-if="finding_stats.count_low > 0"><strong class="risk-low">{{ finding_stats.count_low }} Low</strong></template>
-        <template #info v-if="finding_stats.count_info > 0"><strong class="risk-info">{{ finding_stats.count_info }} Info</strong></template>
-      </comma-and-join>
-      vulnerabilities were identified:
-    </p>
-  
-    <figure>
-      <chart :width="15" :height="10" :config="{
-          type: 'bar', 
-          data: {
-              labels: ['Critical', 'High', 'Medium', 'Low', 'Info'],
-              datasets: [{
-                  data: [
-                      finding_stats.count_critical,
-                      finding_stats.count_high,
-                      finding_stats.count_medium,
-                      finding_stats.count_low,
-                      finding_stats.count_info
-                  ],
-                  backgroundColor: [
-                      cssvar('--color-risk-critical'), 
-                      cssvar('--color-risk-high'), 
-                      cssvar('--color-risk-medium'), 
-                      cssvar('--color-risk-low'), 
-                      cssvar('--color-risk-info')
-                  ],
-              }]
-          },
-          options: {
-              scales: {y: {beginAtZero: true, ticks: {precision: 0}}}, 
-              plugins: {legend: {display: false}},
-          }
-      }" />
-      <figcaption id="distribution-of-identified-vulnerabilities">Distribution of identified vulnerabilities</figcaption>
-    </figure>
-  
-    <table class="finding-summary-table">
-      <thead>
-        <tr>
-          <th style="width: auto;">Vulnerability</th>
-          <th style="width: 6em;" align="center">Criticality</th>
-          <th v-if="report.is_retest" style="width: 10em;" align="center">Remediation Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="finding in findings">
-          <td>
-            <ref :to="finding.id">{{ finding.title }}</ref>
-          </td>
-          <td align="center">
-            <ref :to="finding.id" :class="'risk-' + finding.cvss.level">{{ lodash.capitalize(finding.cvss.level) }}</ref>
-          </td>
-          <td v-if="report.is_retest" align="center">
-            <ref :to="finding.id" :class="'status-' + finding.retest_status.value">{{ finding.retest_status.label }}</ref>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <pagebreak />
-  </section>
-  
-  
-  <section id="findings-list">
-    <div v-for="(finding, findingIndex) in findings" :id="'findingsection-' + finding.id" data-sysreptor-rendersections="choosable" :data-sysreptor-rendersections-name="'Finding: ' + finding.title">
-      <h2 :id="finding.id" class="in-toc finding-title" :data-toc-title="finding.title + ' (' + capitalize(finding.cvss.level) + ')'">{{ finding.title }}</h2>
-      <div>
-        <template v-if="report.is_retest || finding.retest_status.value !== 'open'">
-          <strong>Remediation Status: </strong><span :class="'status-' + finding.retest_status.value">{{ finding.retest_status.label }}</span><br>
-        </template>
-        <strong>Criticality: </strong><span :class="'risk-' + finding.cvss.level">{{ capitalize(finding.cvss.level) }}</span><br>
-        <strong>CVSS-Score: </strong>
-        <span :class="'risk-' + finding.cvss.level">
-          <a v-if="finding.cvss.vector.startsWith('CVSS:3.1')" :href="'https://www.first.org/cvss/calculator/3.1#' + finding.cvss.vector" class="link-none">{{ finding.cvss.score}}</a>
-          <a v-else-if="finding.cvss.vector.startsWith('CVSS:3.0')" :href="'https://www.first.org/cvss/calculator/3.0#' + finding.cvss.vector" class="link-none">{{ finding.cvss.score }}</a>
-          <span v-else>{{ finding.cvss.score }}</span>
-        </span><br>
-        <template v-if="finding.affected_components && finding.affected_components.length > 0">
-          <strong>Affects: </strong>
-          <markdown v-if="finding.affected_components.length == 1" :text="finding.affected_components[0]" class="markdown-inline" />
-          <ul v-else class="location-ul">
-            <li v-for="component in finding.affected_components">
-              <markdown :text="component" class="markdown-inline" />
-            </li>
-          </ul>
-        </template>
-        <template v-if="finding.short_recommendation">
-          <strong>Recommendation: </strong>
-          <markdown :text="finding.short_recommendation" class="markdown-inline" /><br>
-        </template>
-      </div>
-  
-      <div>
-        <h3>Overview</h3>
-        <markdown :text="finding.summary" />
-      </div>
-  
-      <div v-if="finding.retest_notes">
-        <h3>Remarks on Remediation Status</h3>
-        <markdown :text="finding.retest_notes" />
-      </div>
-  
-      <div>
-        <h3 :id="finding.id + '-description'">Description</h3>
-        <markdown :text="finding.description" />
-      </div>
-  
-      <div>
-        <h3 :id="finding.id + '-recommendation'">Recommendation</h3>
-        <markdown :text="finding.recommendation" />
-      </div>
-  
-      <div v-if="finding.references && finding.references.length > 0">
-        <h3>Additional Information</h3>
-        <ul>
-          <li v-for="reference in finding.references">
-            <a :href="reference">{{ reference }}</a>
-          </li>
-        </ul>
-      </div>
-  
-      <pagebreak />
+</section>
+
+
+<section id="section-scope" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Methodology and Scope">
+    <h1 id="scope" class="in-toc numbered">Methodology and Scope</h1>
+
+    <div>
+        <markdown v-if="report.extra_fields && report.extra_fields.methodology" :text="report.extra_fields.methodology" />
     </div>
-  </section>
-  
-  
-  <section>
-    <h1 id="document-history" class="in-toc">List of Changes</h1>
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 4em;" align="center">Version</th>
-          <th style="width: 6em;" align="center">Date</th>
-          <th style="width: auto;">Description</th>
-          <th style="width: 12em;">Author</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in report.document_history">
-          <td align="center">{{ item.version }}</td>
-          <td align="center">{{ item.date }}</td>
-          <td>{{ item.description }}</td>
-          <td>
-            <comma-and-join>
-              <template v-for="author in item.authors" #[author]>{{ author }}</template>
-            </comma-and-join>
-          </td>
-        </tr>
-      </tbody>
+
+    <div>
+        <h2 id="scope-details" class="in-toc numbered">Scope</h2>
+        <p>
+            <strong>Start:</strong> {{ report.project.start_date }}
+            &nbsp;|&nbsp;
+            <strong>End:</strong> {{ report.project.end_date }}
+        </p>
+
+        <markdown v-if="report.extra_fields && report.extra_fields.scope_text" :text="report.extra_fields.scope_text" />
+
+        <div v-if="report.scope && report.scope.filter(s => !s.disallowed).length">
+            <h3>In-Scope Systems</h3>
+            <ul>
+                <li v-for="group in report.scope.filter(s => !s.disallowed)">
+                    <strong v-if="group.name">{{ group.name }}:</strong>
+                    <span v-if="group.scope && group.scope.length">{{ group.scope.join(', ') }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <div v-if="report.scope && report.scope.filter(s => s.disallowed).length">
+            <h3>Out-of-Scope Systems</h3>
+            <ul>
+                <li v-for="group in report.scope.filter(s => s.disallowed)">
+                    <strong v-if="group.name">{{ group.name }}:</strong>
+                    <span v-if="group.scope && group.scope.length">{{ group.scope.join(', ') }}</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div v-if="report.whitecards && report.whitecards.length">
+        <h2 id="provided-users" class="in-toc numbered">User Accounts and Permissions</h2>
+        <div v-for="wc in report.whitecards" style="margin-bottom: 1em;">
+            <strong>{{ wc.title }}</strong>
+            <markdown :text="wc.description" />
+        </div>
+    </div>
+    <pagebreak />
+</section>
+
+
+<section id="section-findings-summary" data-sysreptor-rendersections="choosable" data-sysreptor-rendersections-name="Vulnerability Overview">
+    <h1 id="findings-summary" class="in-toc numbered">Vulnerability Overview</h1>
+    <p>
+        In the course of this penetration test
+        <comma-and-join>
+            <template #critical v-if="report.totals.findings_critical > 0"><strong class="risk-critical">{{ report.totals.findings_critical }} Critical</strong></template>
+            <template #high v-if="report.totals.findings_high > 0"><strong class="risk-high">{{ report.totals.findings_high }} High</strong></template>
+            <template #medium v-if="report.totals.findings_medium > 0"><strong class="risk-medium">{{ report.totals.findings_medium }} Medium</strong></template>
+            <template #low v-if="report.totals.findings_low > 0"><strong class="risk-low">{{ report.totals.findings_low }} Low</strong></template>
+            <template #info v-if="report.totals.findings_info > 0"><strong class="risk-info">{{ report.totals.findings_info }} Info</strong></template>
+        </comma-and-join>
+        vulnerabilities were identified:
+    </p>
+
+    <figure>
+        <chart :width="15" :height="10" :config="{
+            type: 'bar',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low', 'Info'],
+                datasets: [{
+                    data: [
+                        report.totals.findings_critical,
+                        report.totals.findings_high,
+                        report.totals.findings_medium,
+                        report.totals.findings_low,
+                        report.totals.findings_info
+                    ],
+                    backgroundColor: [
+                        cssvar('--color-risk-critical'),
+                        cssvar('--color-risk-high'),
+                        cssvar('--color-risk-medium'),
+                        cssvar('--color-risk-low'),
+                        cssvar('--color-risk-info')
+                    ],
+                }]
+            },
+            options: {
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}},
+                plugins: {legend: {display: false}},
+            }
+        }" />
+        <figcaption id="distribution-of-identified-vulnerabilities">Distribution of identified vulnerabilities</figcaption>
+    </figure>
+
+    <table class="finding-summary-table">
+        <thead>
+            <tr>
+                <th style="width: auto;">Vulnerability</th>
+                <th style="width: 6em;" align="center">Severity</th>
+                <th style="width: 4em;" align="center">CVSS</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="finding in finding_groups[0].findings">
+                <td>
+                    <ref :to="'f' + finding.id">{{ finding.title }}</ref>
+                </td>
+                <td align="center" :class="'risk-' + finding.cvss.level">
+                    <ref :to="'f' + finding.id">{{ lodash.capitalize(finding.cvss.level) }}</ref>
+                </td>
+                <td align="center">
+                    <ref :to="'f' + finding.id">{{ finding.cvss.score }}</ref>
+                </td>
+            </tr>
+        </tbody>
     </table>
-  </section>
-  
-  <markdown>
-    # Disclaimer {#disclaimer .in-toc}
-  
-    Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
-  </markdown>
-  
-  <markdown>
-    # Imprint {#imprint .in-toc}
-  
-    Security Maximale GmbH<br>
-    Example Street 47 | 4711 Example<br>
-    FN 12345 v | District Court Example<br>
-  </markdown>
-  
+    <pagebreak />
+</section>
+
+
+<section id="findings-list">
+    <div v-for="finding in finding_groups[0].findings" :id="'findingsection-' + finding.id" data-sysreptor-rendersections="choosable" :data-sysreptor-rendersections-name="'Finding: ' + finding.title">
+        <h2 :id="'f' + finding.id" class="in-toc finding-title">{{ finding.title }}</h2>
+        <div>
+            <strong>Severity: </strong><span :class="'risk-' + finding.cvss.level">{{ lodash.capitalize(finding.cvss.level) }}</span><br>
+            <strong>CVSS Score: </strong>
+            <span :class="'risk-' + finding.cvss.level">
+                <a v-if="finding.cvss.vector && finding.cvss.vector.startsWith('CVSS:3.1')" :href="'https://www.first.org/cvss/calculator/3.1#' + finding.cvss.vector" class="link-none">{{ finding.cvss.score }}</a>
+                <a v-else-if="finding.cvss.vector && finding.cvss.vector.startsWith('CVSS:3.0')" :href="'https://www.first.org/cvss/calculator/3.0#' + finding.cvss.vector" class="link-none">{{ finding.cvss.score }}</a>
+                <span v-else>{{ finding.cvss.score }}</span>
+            </span><br>
+            <template v-if="finding.affected_entities">
+                <strong>Affects: </strong>
+                <markdown :text="finding.affected_entities" class="markdown-inline" />
+            </template>
+        </div>
+
+        <div>
+            <h3>Overview</h3>
+            <markdown :text="finding.description" />
+        </div>
+
+        <div>
+            <h3>Impact</h3>
+            <markdown :text="finding.impact" />
+        </div>
+
+        <div v-if="finding.replication_steps">
+            <h3>Replication Steps</h3>
+            <markdown :text="finding.replication_steps" />
+        </div>
+
+        <div>
+            <h3>Recommendation</h3>
+            <markdown :text="finding.recommendation" />
+        </div>
+
+        <div v-if="finding.references">
+            <h3>Additional Information</h3>
+            <markdown :text="finding.references" />
+        </div>
+
+        <div v-if="finding.evidence && finding.evidence.length">
+            <h3>Evidence</h3>
+            <div v-for="ev in finding.evidence" style="margin-bottom: 2em; text-align: center;">
+                <img
+                    :src="ev.path"
+                    :alt="ev.caption || ev.friendly_name || ev.path"
+                    style="max-width: 100%; max-height: 500px; border: 1px solid #ccc; margin-bottom: 0.5em;" />
+                <div style="font-size: 0.9em;">
+                    <strong v-if="ev.friendly_name">{{ ev.friendly_name }}</strong>
+                    <span v-else-if="ev.caption">{{ ev.caption }}</span>
+                    <div v-if="ev.description && ev.description.trim()" style="margin-top: 0.25em;">
+                        {{ ev.description }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <pagebreak />
+    </div>
+</section>
+
+
+<section>
+    <h1 id="disclaimer" class="in-toc numbered">Disclaimer</h1>
+    <markdown v-if="report.extra_fields && report.extra_fields.disclaimer" :text="report.extra_fields.disclaimer" />
+    <pagebreak />
+</section>
+
+
+<section>
+    <h1 id="imprint" class="in-toc numbered">Imprint</h1>
+    <p>
+        {{ report.company.name }}<br>
+        {{ report.company.address }}<br>
+        <span v-if="report.company.email">{{ report.company.email }}<br></span>
+        <span v-if="report.company.twitter">{{ report.company.twitter }}</span>
+    </p>
+</section>
+
+
+<section class="appendix" v-if="report.extra_fields && report.extra_fields.appendix">
+    <h1 id="appendix" class="in-toc numbered">Appendix</h1>
+    <markdown :text="report.extra_fields.appendix" />
+</section>
