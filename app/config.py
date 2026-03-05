@@ -8,6 +8,8 @@ class Config:
     SESSION_COOKIE_SAMESITE = "Lax"
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
 
+    APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/")
+
     GHOSTWRITER_URL = os.environ.get("GHOSTWRITER_URL", "")
 
     VAULTWARDEN_URL           = os.environ.get("VAULTWARDEN_URL", "")

@@ -9,6 +9,8 @@ services:
       - VAULTWARDEN_URL=${VAULTWARDEN_URL}
       - VAULTWARDEN_ORG_ID=${VAULTWARDEN_ORG_ID}
       - VAULTWARDEN_COLLECTION_ID=${VAULTWARDEN_COLLECTION_ID}
+      # Optional: serve under a subpath, e.g. /ghostbadger
+      # - APPLICATION_ROOT=/ghostbadger
     volumes:
       # Seeded from image defaults on first run — edit freely on the host.
       - ./resources:/app/reporting/resources
