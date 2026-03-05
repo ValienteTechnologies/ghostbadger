@@ -761,23 +761,8 @@ html, body {
 
 /* ── Vaultwarden drawer ──────────────────────────────────────── */
 .drawer__vaultwarden {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
   margin-bottom: .5rem;
 }
-
-.vw-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-border);
-  transition: background .2s;
-}
-.vw-dot--ok   { background: var(--color-success); }
-.vw-dot--warn { background: var(--color-warning); }
-.vw-dot--err  { background: var(--color-error); }
 
 /* ── Vaultwarden export steps ────────────────────────────────── */
 .export-steps {

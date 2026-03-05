@@ -51,6 +51,7 @@ def index():
         templates=templates,
         selected_template=selected,
         vaultwarden_configured=is_vaultwarden_configured(current_app),
+        vault_connected=is_vault_connected(),
     )
 
 

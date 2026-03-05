@@ -19,10 +19,9 @@
       {% endif %}
     </div>
     <div class="drawer__footer">
-      {% if vaultwarden_configured %}
+      {% if vaultwarden_configured and not vault_connected %}
       <div class="drawer__vaultwarden">
-        <span id="vw-status-dot" class="vw-dot" title="Vaultwarden status"></span>
-        <button id="vw-connect-btn" class="btn btn--ghost btn--sm" style="flex:1">Connect to Vaultwarden</button>
+        <button id="vw-connect-btn" class="btn btn--ghost btn--sm btn--full">Connect to Vaultwarden</button>
       </div>
       {% endif %}
 
@@ -264,7 +263,6 @@
   const stepVaultCheck = document.getElementById("step-vault-check");
   const stepSendCheck  = document.getElementById("step-send-check");
   const vwConnectBtn  = document.getElementById("vw-connect-btn");
-  const vwDot         = document.getElementById("vw-status-dot");
 
   let _activeReportId   = null;
   let _activeJobId      = null;
@@ -614,7 +612,6 @@
       }
       vwModalSubmit.disabled    = true;
       vwModalSubmit.textContent = "Connecting…";
-      setVwDot("pending");
       try {
         const resp = await fetch("/dashboard/api/vault/connect", {
           method: "POST",
@@ -623,11 +620,10 @@
         });
         const data = await resp.json();
         if (!resp.ok) {
-          setVwDot("err");
           showFlash("error", data.error || "Connection failed.");
         } else {
           setVwDot("ok");
-          if (vwConnectBtn) vwConnectBtn.textContent = "Connected ✓";
+          if (vwConnectBtn) vwConnectBtn.closest(".drawer__vaultwarden").hidden = true;
           showFlash("success", "Connected to Vaultwarden.");
           closeVwModal();
           // Clear sensitive fields
@@ -642,14 +638,6 @@
         vwModalSubmit.textContent = "Connect";
       }
     });
-  }
-
-  function setVwDot(state) {
-    if (!vwDot) return;
-    vwDot.className = "vw-dot";
-    if (state === "ok")      vwDot.classList.add("vw-dot--ok");
-    else if (state === "warn") vwDot.classList.add("vw-dot--warn");
-    else if (state === "err")  vwDot.classList.add("vw-dot--err");
   }
 
   // ── Vaultwarden: export steps ──────────────────────────────────
