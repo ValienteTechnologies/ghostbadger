@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 
 from playwright.async_api import async_playwright
 
@@ -20,7 +21,8 @@ async def _render(
     resources: dict[str, bytes],
 ) -> str:
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
+        launch_args = ["--no-sandbox"] if os.environ.get("PLAYWRIGHT_CHROMIUM_NO_SANDBOX") else []
+        browser = await pw.chromium.launch(headless=True, args=launch_args)
         page    = await browser.new_page()
 
         # Surface template/JS errors in output instead of producing a blank page
