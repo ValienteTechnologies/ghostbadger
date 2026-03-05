@@ -25,6 +25,14 @@ from ..vaultwarden import VaultwardenError, get_vw_client, is_vault_connected, i
 from . import bp
 
 _render_jobs:  dict[str, dict] = {}
+_JOB_TTL = 3600  # seconds — completed jobs older than this are discarded
+
+
+def _purge_old_jobs() -> None:
+    cutoff = time.monotonic() - _JOB_TTL
+    stale = [jid for jid, j in _render_jobs.items() if j.get("done") and j.get("created_at", 0) < cutoff]
+    for jid in stale:
+        del _render_jobs[jid]
 
 
 def _client() -> GhostwriterClient:
@@ -98,8 +106,10 @@ def view_report_pdf(report_id: int):
     gw_url   = current_app.config["GHOSTWRITER_URL"]
     gw_token = session["gw_token"]
 
+    _purge_old_jobs()
+
     job_id = str(uuid.uuid4())
-    _render_jobs[job_id] = {"q": queue.Queue(), "pdf": None, "error": None, "done": False}
+    _render_jobs[job_id] = {"q": queue.Queue(), "pdf": None, "error": None, "done": False, "created_at": time.monotonic()}
 
     threading.Thread(
         target=_run_view,
