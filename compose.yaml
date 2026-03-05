@@ -1,0 +1,15 @@
+services:
+  ghostbadger:
+    image: ghcr.io/valientetechnologies/ghostbadger:latest
+    ports:
+      - "80:80"
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - GHOSTWRITER_URL=${GHOSTWRITER_URL}
+      - VAULTWARDEN_URL=${VAULTWARDEN_URL}
+      - VAULTWARDEN_ORG_ID=${VAULTWARDEN_ORG_ID}
+      - VAULTWARDEN_COLLECTION_ID=${VAULTWARDEN_COLLECTION_ID}
+    volumes:
+      # Seeded from image defaults on first run — edit freely on the host.
+      - ./reporting:/app/app/reporting/resources
+    restart: unless-stopped
