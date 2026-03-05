@@ -59,6 +59,9 @@ docker run -d \
 
 See [app/reporting/resources/README.md](app/reporting/resources/README.md) for full documentation on creating and modifying report templates, available data fields, special components, and page layout.
 
+> [!IMPORTANT]
+> `extra_fields` are custom fields defined in your Ghostwriter instance under **Commandcenter → Extra Field Configurations → Extra fields for Reports**. The field names in the demo templates reflect our own setup — yours will likely differ. Review and update all `report.extra_fields.*` references in your templates to match your Ghostwriter configuration.
+
 ---
 
 ### The Blog Post

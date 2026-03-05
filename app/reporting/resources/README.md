@@ -47,6 +47,10 @@ Templates are Vue 3 fragments rendered inside a headless browser. Use standard H
 
 ### Common `report.*` Fields
 
+> [!IMPORTANT]
+> `extra_fields` are custom fields defined in your Ghostwriter instance under **Commandcenter → Extra Field Configurations → Extra fields for Reports**. The field names listed below reflect our own setup — yours may differ. Check your Ghostwriter instance and adjust template references accordingly.
+
+
 ```
 report.title
 report.report_date
