@@ -1,0 +1,148 @@
+<div id="footer" data-sysreptor-generated="page-footer">
+    <div id="footer-left"><em>CONFIDENTIAL</em></div>
+    <div id="footer-center">{{ report.title }}</div>
+</div>
+
+<div v-if="report.watermark" id="watermark-osid">{{ report.osid }}</div>
+
+
+
+<section id="page-cover" data-sysreptor-generated="page-cover">
+    <img id="page-cover-logo" src="/assets/name/logo-transparent.svg" alt="logo">
+    <div id="page-cover-title">
+        <h1>{{ report.title }}</h1>
+        <h2>Exam Report</h2>
+    </div>
+
+    <div id="page-cover-student">
+        <p id="page-cover-osid">
+            <strong>OSID: {{ report.osid }}</strong><br>
+            {{ report.mail }}<br>
+        </p>
+        <p id="page-cover-meta">
+            {{ formatDate(report.report_date, 'long') }}<br>
+            v{{ report.report_version }}
+        </p>
+    </div>
+
+</section>
+<pagebreak />
+
+
+
+<table-of-contents id="toc" v-slot="tocItems">
+    <h1>Table of Contents</h1>
+    <ul>
+        <li v-for="item in tocItems" :class="'toc-level' + item.level">
+            <ref :to="item.id" />
+        </li>
+    </ul>
+    <pagebreak />
+</table-of-contents>
+
+<markdown>
+    # OffSec Certified Professional Exam Report {.in-toc.numbered}
+
+    ## Introduction {.in-toc .numbered}
+    The OffSec Certified Professional exam report contains all efforts that were conducted in order to pass the OffSec Certified Professional exam. This report should contain all items that were used to pass the overall exam and it will be graded from a standpoint of correctness and fullness to all aspects of the exam. The purpose of this report is to ensure that the student has a full understanding of penetration testing methodologies as well as the technical knowledge to pass the qualifications for the OffSec Certified Professional.
+
+    ## Objective {.in-toc.numbered}
+    The objective of this assessment is to perform an internal penetration test against the OffSec Lab and Exam network. The student is tasked with following a methodical approach to obtaining access to the objective goals. This test should simulate an actual penetration test and how you would start from beginning to end, including the overall report. An example page has already been created for you in the latter portions of this document that should give you ample information on what is expected to pass this course. Use the sample report as a guideline to get you through the reporting.
+
+    ## Requirements {.in-toc.numbered}
+    The student will be required to fill out this penetration testing report fully and to include the following sections:
+    * Overall High-Level Summary and Recommendations (non-technical)
+    * Methodology walkthrough and detailed outline of steps taken
+    * Each finding with included screenshots, walkthrough, sample code, and proof.txt if applicable.
+    * Any additional items that were not included
+</markdown>
+<pagebreak />
+
+
+<section>
+    <h1 id="summary" class="in-toc numbered">High-Level Summary</h1>
+    <markdown v-if="report.highlevel_summary" :text="report.highlevel_summary" />
+
+    <div v-if="report.recommendations">
+        <h2 id="recommendations" class="in-toc numbered">Recommendations</h2>
+        <markdown :text="report.recommendations" />
+    </div>
+</section>
+<pagebreak />
+
+<section>
+    <h1 class="in-toc numbered">Methodologies</h1>
+    <markdown :text="report.methodology" />
+
+    <h2 class="in-toc numbered">Information Gathering</h2>
+    <markdown :text="report.infogathering" />
+
+    <h2 class="in-toc numbered">Service Enumeration</h2>
+    <markdown :text="report.serviceenum" />
+
+    <h2 class="in-toc numbered">Penetration</h2>
+    <markdown :text="report.penetration" />
+
+    <h2 class="in-toc numbered">Maintaining Access</h2>
+    <markdown :text="report.maintainaccess" />
+
+    <h2 class="in-toc numbered">House Cleaning</h2>
+    <markdown :text="report.housecleaning" />
+</section>
+<pagebreak />
+
+<section v-for="group in finding_groups">
+    <h1 class="in-toc numbered">{{ group.label }}</h1>
+    <div v-for="finding in group.findings">
+        <h2 :id="finding.id" class="in-toc numbered">{{ finding.title }} ({{ finding.ip_address }})</h2>
+        <table class="finding-heading">
+            <tr>
+                <td align="center" class="table-key"><strong>Severity:</strong></td>
+                <td align="center" :class="'risk-bg-' + finding.severity.value">
+                    <strong>{{ finding.severity.label }}</strong>
+                </td>
+            </tr>
+        </table>
+
+        <div v-if="finding.serviceenum">
+            <h3 class="in-toc numbered">Service Enumeration</h3>
+            <markdown :text="finding.serviceenum" />
+        </div>
+        <div v-if="finding.initialaccess">
+            <h3 class="in-toc numbered">Initial Access</h3>
+            <markdown :text="finding.initialaccess" />
+        </div>
+
+        <div v-if="finding.privilegeescalation">
+            <h3 class="in-toc numbered">Privilege Escalation</h3>
+            <markdown :text="finding.privilegeescalation" />
+        </div>
+
+        <div v-if="finding.postexploitation">
+            <h3 class="in-toc numbered">Post-Exploitation</h3>
+            <markdown :text="finding.postexploitation" />
+        </div>
+        <pagebreak />
+    </div>
+</section>
+
+<section v-if="report.appendix_sections.length > 0" class="appendix">
+    <h1 id="appendix" class="in-toc numbered">Appendix</h1>
+
+    <div v-for="appendix_section in report.appendix_sections">
+        <h2 class="in-toc numbered">{{ appendix_section.title }}</h2>
+        <markdown :text="appendix_section.content" />
+    </div>
+    <pagebreak />
+</section>
+
+<section>
+    <div class="end-of-report">
+        End of Report<br>
+    </div>
+    <div class="end-of-report">
+        This report was rendered<br>
+        by <a href="https://docs.sysreptor.com/">SysReptor</a> with<br>
+        <span style="color:red;">&hearts;</span><br>
+    </div>
+</section>
