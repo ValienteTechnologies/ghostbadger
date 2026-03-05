@@ -91,22 +91,22 @@
         <span class="dashboard__title">Export</span>
       </div>
       <div class="export-fields">
-        <div class="export-field">
-          <label class="export-field__label" for="export-filename">Filename</label>
-          <input class="export-field__input" type="text" id="export-filename" placeholder="report.pdf">
+        <div class="field">
+          <label class="field__label" for="export-filename">Filename</label>
+          <input class="field__input" type="text" id="export-filename" placeholder="report.pdf">
         </div>
-        <div class="export-field">
-          <label class="export-field__label" for="export-owner-pw">Owner password</label>
-          <div class="export-field__row">
-            <input class="export-field__input" type="password" id="export-owner-pw" placeholder="Required">
-            <button class="btn btn--secondary export-field__randomize" id="randomize-owner-pw" title="Generate password">↺</button>
+        <div class="field">
+          <label class="field__label" for="export-owner-pw">Owner password</label>
+          <div class="field__row">
+            <input class="field__input" type="password" id="export-owner-pw" placeholder="Required">
+            <button class="btn btn--secondary field__action" id="randomize-owner-pw" title="Generate password">↺</button>
           </div>
         </div>
-        <div class="export-field">
-          <label class="export-field__label" for="export-user-pw">User password</label>
-          <div class="export-field__row">
-            <input class="export-field__input" type="password" id="export-user-pw" placeholder="Required">
-            <button class="btn btn--secondary export-field__randomize" id="randomize-user-pw" title="Generate password">↺</button>
+        <div class="field">
+          <label class="field__label" for="export-user-pw">User password</label>
+          <div class="field__row">
+            <input class="field__input" type="password" id="export-user-pw" placeholder="Required">
+            <button class="btn btn--secondary field__action" id="randomize-user-pw" title="Generate password">↺</button>
           </div>
         </div>
 
@@ -210,17 +210,17 @@
       <button class="modal__close" id="vw-modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal__body">
-      <div class="modal-field">
-        <label class="modal-field__label" for="vw-client-id">Client ID</label>
-        <input class="modal-field__input" type="text" id="vw-client-id" placeholder="user.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+      <div class="field">
+        <label class="field__label" for="vw-client-id">Client ID</label>
+        <input class="field__input" type="text" id="vw-client-id" placeholder="user.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
       </div>
-      <div class="modal-field">
-        <label class="modal-field__label" for="vw-client-secret">Client Secret</label>
-        <input class="modal-field__input" type="password" id="vw-client-secret" placeholder="Required" autocomplete="new-password">
+      <div class="field">
+        <label class="field__label" for="vw-client-secret">Client Secret</label>
+        <input class="field__input" type="password" id="vw-client-secret" placeholder="Required" autocomplete="new-password">
       </div>
-      <div class="modal-field">
-        <label class="modal-field__label" for="vw-master-pw">Master Password</label>
-        <input class="modal-field__input" type="password" id="vw-master-pw" placeholder="Required" autocomplete="new-password">
+      <div class="field">
+        <label class="field__label" for="vw-master-pw">Master Password</label>
+        <input class="field__input" type="password" id="vw-master-pw" placeholder="Required" autocomplete="new-password">
       </div>
       <p class="modal__hint">Credentials are kept in your session only — never stored on disk.</p>
     </div>

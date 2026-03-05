@@ -153,10 +153,9 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   letter-spacing: .05em;
 }
 
-/* Shared input/textarea base (field, export-field, modal-field, send-link) */
+/* Shared input/textarea base (field + send-link) */
 .field__textarea,
-.export-field__input,
-.modal-field__input,
+.field__input,
 .send-link-input {
   width: 100%;
   min-width: 0;
@@ -174,27 +173,45 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 }
 
 .field__textarea:focus,
-.export-field__input:focus,
-.modal-field__input:focus,
+.field__input:focus,
 .send-link-input:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-focus);
 }
 
-.field__textarea {
-  resize: vertical;
+.field__textarea { resize: vertical; }
+
+.field__row {
+  display: flex;
+  gap: .375rem;
+}
+.field__row .field__input { flex: 1; }
+
+.field__action {
+  flex-shrink: 0;
+  padding: .5rem .625rem;
+  font-size: 1rem;
+  line-height: 1;
 }
 
-.field--error .field__textarea {
+.field__input::placeholder { color: var(--color-muted); opacity: .6; }
+
+.field--error .field__textarea,
+.field--error .field__input {
   border-color: var(--color-error);
 }
-.field--error .field__textarea:focus {
+.field--error .field__textarea:focus,
+.field--error .field__input:focus {
   box-shadow: 0 0 0 3px var(--color-error-focus);
 }
 
 .field__error {
   font-size: .8125rem;
   color: var(--color-error);
+  padding: .5rem .75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
 }
 
 .field__hint {
@@ -398,37 +415,6 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   display: flex;
   flex-direction: column;
   gap: .625rem;
-}
-
-.export-field {
-  display: flex;
-  flex-direction: column;
-  gap: .375rem;
-}
-
-.export-field__label {
-  font-size: .75rem;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-
-.export-field__row {
-  display: flex;
-  gap: .375rem;
-}
-
-.export-field__input { flex: 1; }
-
-.export-field__input::placeholder,
-.modal-field__input::placeholder { color: var(--color-muted); opacity: .6; }
-
-.export-field__randomize {
-  flex-shrink: 0;
-  padding: .5rem .625rem;
-  font-size: 1rem;
-  line-height: 1;
 }
 
 #pdf-download-btn { margin-top: 1rem; }
@@ -813,20 +799,6 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   display: flex;
   justify-content: flex-end;
   border-top: 1px solid var(--color-border-2);
-}
-
-.modal-field {
-  display: flex;
-  flex-direction: column;
-  gap: .375rem;
-}
-
-.modal-field__label {
-  font-size: .75rem;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: .05em;
 }
 
 .send-link-input {
