@@ -17,6 +17,9 @@ resources/
 
 A template is active when both `templates/<name>.html` and `templates/<name>.css` exist with the same stem. The name is what appears in the template selector in the UI.
 
+> [!TIP]
+> The demo templates included here are based on [SysReptor](https://github.com/Syslifters/sysreptor) templates. If you already have SysReptor templates, you can copy them into `templates/` and adapt them for Ghostbadger with minimal changes — the rendering engine is the same.
+
 ---
 
 ## Creating a New Template
