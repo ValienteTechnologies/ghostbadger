@@ -1,0 +1,556 @@
+(function () {
+  "use strict";
+
+  // ── Export refs ────────────────────────────────────────────────
+  const exportFilename   = document.getElementById("export-filename");
+  const exportOwnerPw    = document.getElementById("export-owner-pw");
+  const exportUserPw     = document.getElementById("export-user-pw");
+
+  // ── PDF panel refs ─────────────────────────────────────────────
+  const pdfPanel         = document.getElementById("pdf-panel");
+  const pdfIdle          = document.getElementById("pdf-idle");
+  const pdfProgress      = document.getElementById("pdf-progress");
+  const pdfStageLabel    = document.getElementById("pdf-stage-label");
+  const pdfIframe        = document.getElementById("pdf-iframe");
+  const pdfDownloadBtn   = document.getElementById("pdf-download-btn");
+  const pdfCloseBtn      = document.getElementById("pdf-close-btn");
+  const pdfStatusbar     = document.getElementById("pdf-statusbar");
+  const statusbarStage   = document.getElementById("statusbar-stage");
+  const statusbarElapsed = document.getElementById("statusbar-elapsed");
+  const statusbarToggle  = document.getElementById("statusbar-toggle");
+  const statusbarMsgs    = document.getElementById("statusbar-msgs");
+  const flashContainer   = document.getElementById("flash-container");
+
+  // ── Vaultwarden refs (may be null when not configured) ─────────
+  const vwConfigured  = !!document.getElementById("export-steps");
+  const exportSteps   = document.getElementById("export-steps");
+  const stepVault      = document.getElementById("step-vault");
+  const stepSend       = document.getElementById("step-send");
+  const stepCopyLink   = document.getElementById("step-copy-link");
+  const stepDownload   = document.getElementById("step-download");
+  const btnSaveVault   = document.getElementById("btn-save-vault");
+  const btnCreateSend  = document.getElementById("btn-create-send");
+  const btnCopyLink    = document.getElementById("btn-copy-link");
+  const btnConfirmCopy = document.getElementById("btn-confirm-copied");
+  const sendLinkInput  = document.getElementById("send-link-input");
+  const vwConnectBtn   = document.getElementById("vw-connect-btn");
+
+  let _activeReportId    = null;
+  let _activeJobId       = null;
+  let _activeReportTitle = null;
+  let _currentPdfUrl     = null;
+  let _activePdfHash     = null;
+  let _activeEs          = null;
+  let _renderTimer      = null;
+  let _renderT0         = null;
+  let _expiryDays       = 14;
+
+  // ── Export helpers ─────────────────────────────────────────────
+  function slugify(title) {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".pdf";
+  }
+
+  function randomPassword() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => chars[b % chars.length]).join("");
+  }
+
+  function updateDownloadState() {
+    const ready = exportOwnerPw.value.trim() && exportUserPw.value.trim();
+    if (pdfDownloadBtn) pdfDownloadBtn.classList.toggle("btn--disabled", !ready);
+  }
+
+  exportOwnerPw.addEventListener("input", updateDownloadState);
+  exportUserPw.addEventListener("input", updateDownloadState);
+
+  document.getElementById("randomize-owner-pw").addEventListener("click", () => {
+    exportOwnerPw.type  = "text";
+    exportOwnerPw.value = randomPassword();
+    updateDownloadState();
+  });
+  document.getElementById("randomize-user-pw").addEventListener("click", () => {
+    exportUserPw.type  = "text";
+    exportUserPw.value = randomPassword();
+    updateDownloadState();
+  });
+
+  // ── Utilities ──────────────────────────────────────────────────
+  function showFlash(category, msg, ttl = 5000) {
+    const el = document.createElement("div");
+    el.className = `flash flash--${category}`;
+    el.textContent = msg;
+    flashContainer.appendChild(el);
+    setTimeout(() => el.remove(), ttl);
+  }
+
+  function showEvidenceFlash(fetched, failed) {
+    const total = fetched + failed;
+    if (total === 0) {
+      showFlash("info", "No evidence files attached.");
+    } else if (failed === 0) {
+      showFlash("success", `${fetched} evidence file${fetched !== 1 ? "s" : ""} loaded.`);
+    } else {
+      showFlash("error", `Evidence: ${fetched} loaded, ${failed} failed.`);
+    }
+  }
+
+  // ── Trigger encrypted download ─────────────────────────────────
+  async function doDownload() {
+    if (!exportOwnerPw.value.trim() || !exportUserPw.value.trim()) {
+      showFlash("error", "Both owner and user passwords are required to download.");
+      return;
+    }
+    if (!_activeJobId) return;
+
+    if (pdfDownloadBtn) pdfDownloadBtn.classList.add("btn--disabled");
+    try {
+      const resp = await fetch(`/dashboard/api/render/${_activeJobId}/pdf/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner_password: exportOwnerPw.value,
+          user_password:  exportUserPw.value,
+          filename:       exportFilename.value || `report-${_activeReportId}.pdf`,
+        }),
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showFlash("error", body.error || "Encryption failed.");
+        return;
+      }
+      const url  = URL.createObjectURL(await resp.blob());
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = exportFilename.value || `report-${_activeReportId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showFlash("error", "Download failed: " + err.message);
+    } finally {
+      updateDownloadState();
+    }
+  }
+
+  if (pdfDownloadBtn) {
+    pdfDownloadBtn.addEventListener("click", (e) => { e.preventDefault(); doDownload(); });
+  }
+
+  pdfCloseBtn.addEventListener("click", () => {
+    if (_activeEs) { _activeEs.close(); _activeEs = null; }
+    stopTimer();
+    if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
+    pdfIframe.src       = "";
+    pdfIframe.hidden    = true;
+    pdfProgress.hidden  = true;
+    pdfStatusbar.hidden = true;
+    if (pdfDownloadBtn && !vwConfigured) pdfDownloadBtn.hidden = true;
+    if (exportSteps) { exportSteps.hidden = true; resetVaultSteps(); }
+    pdfCloseBtn.hidden  = true;
+    pdfIdle.hidden      = false;
+  });
+
+  statusbarToggle.addEventListener("click", () => {
+    statusbarMsgs.hidden = !statusbarMsgs.hidden;
+    statusbarToggle.textContent = statusbarMsgs.hidden ? "▾" : "▴";
+  });
+
+  // ── View PDF (event delegation on all .view-btn) ───────────────
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".view-btn");
+    if (!btn) return;
+    _activeReportId    = btn.dataset.reportId;
+    _activeReportTitle = btn.dataset.reportTitle || "";
+    if (_activeReportTitle) {
+      exportFilename.value = slugify(_activeReportTitle);
+    }
+    startPdfRender();
+  });
+
+  // ── PDF panel: open + reset ────────────────────────────────────
+  function openPdfPanel() {
+    if (_activeEs) { _activeEs.close(); _activeEs = null; }
+    stopTimer();
+    if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
+
+    pdfIdle.hidden          = true;
+    pdfProgress.hidden      = false;
+    pdfIframe.hidden        = true;
+    pdfIframe.src           = "";
+    if (pdfDownloadBtn && !vwConfigured) pdfDownloadBtn.hidden = true;
+    if (exportSteps) { exportSteps.hidden = true; resetVaultSteps(); }
+    pdfCloseBtn.hidden      = true;
+    pdfStatusbar.hidden     = true;
+    statusbarMsgs.innerHTML = "";
+    statusbarToggle.hidden  = true;
+    statusbarElapsed.textContent = "";
+    statusbarStage.textContent   = "\u2014";
+    pdfStageLabel.textContent    = "Starting\u2026";
+  }
+
+  function startTimer() {
+    _renderT0    = Date.now();
+    _renderTimer = setInterval(() => {
+      statusbarElapsed.textContent = ((Date.now() - _renderT0) / 1000).toFixed(1) + "s";
+    }, 100);
+  }
+
+  function stopTimer() {
+    if (_renderTimer) { clearInterval(_renderTimer); _renderTimer = null; }
+  }
+
+  function addStatusMsg(level, text) {
+    const el = document.createElement("div");
+    el.className = `statusbar__msg statusbar__msg--${level}`;
+    el.textContent = text;
+    statusbarMsgs.appendChild(el);
+    if (level === "error" || level === "warning") {
+      statusbarMsgs.hidden   = false;
+      statusbarToggle.hidden = false;
+      statusbarToggle.textContent = "▴";
+    } else if (statusbarToggle.hidden) {
+      statusbarToggle.hidden = false;
+    }
+    statusbarMsgs.scrollTop = statusbarMsgs.scrollHeight;
+  }
+
+  // ── Core async render ──────────────────────────────────────────
+  async function startPdfRender() {
+    openPdfPanel();
+    startTimer();
+
+    let jobId;
+    try {
+      const resp = await fetch(`/dashboard/api/report/${_activeReportId}/view`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = await resp.json();
+      if (!resp.ok || body.error) {
+        stopTimer();
+        pdfProgress.hidden  = true;
+        pdfStatusbar.hidden = false;
+        pdfCloseBtn.hidden  = false;
+        statusbarStage.textContent = "Failed to start";
+        addStatusMsg("error", body.error || "Failed to start render.");
+        return;
+      }
+      jobId = body.job_id;
+      _activeJobId = jobId;
+    } catch (err) {
+      stopTimer();
+      pdfProgress.hidden  = true;
+      pdfStatusbar.hidden = false;
+      pdfCloseBtn.hidden  = false;
+      statusbarStage.textContent = "Error";
+      addStatusMsg("error", err.message);
+      return;
+    }
+
+    const es = new EventSource(`/dashboard/api/render/${jobId}/stream`);
+    _activeEs = es;
+
+    es.addEventListener("stage", (e) => {
+      const d = JSON.parse(e.data);
+      pdfStageLabel.textContent  = d.label;
+      pdfStatusbar.hidden        = false;
+      statusbarStage.textContent = d.label;
+      addStatusMsg("info", d.label);
+    });
+
+    es.addEventListener("evidence", (e) => {
+      const d = JSON.parse(e.data);
+      showEvidenceFlash(d.fetched, d.failed);
+    });
+
+    es.addEventListener("message", (e) => {
+      const d = JSON.parse(e.data);
+      addStatusMsg(d.level, d.message);
+    });
+
+    es.addEventListener("render_error", (e) => {
+      addStatusMsg("error", JSON.parse(e.data).message);
+    });
+
+    es.addEventListener("done", async (e) => {
+      es.close();
+      _activeEs = null;
+      stopTimer();
+
+      const d = JSON.parse(e.data);
+      _activePdfHash      = d.pdf_hash || null;
+      pdfStatusbar.hidden = false;
+      pdfProgress.hidden  = true;
+
+      if (!d.success) {
+        statusbarStage.textContent = `Failed after ${d.elapsed}s`;
+        pdfCloseBtn.hidden = false;
+        return;
+      }
+
+      statusbarStage.textContent   = "Done";
+      statusbarElapsed.textContent = `${d.elapsed}s`;
+
+      try {
+        const resp = await fetch(`/dashboard/api/render/${jobId}/pdf`);
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          addStatusMsg("error", body.error || "Could not retrieve PDF.");
+          pdfCloseBtn.hidden = false;
+          return;
+        }
+        _currentPdfUrl   = URL.createObjectURL(await resp.blob());
+        pdfIframe.src    = _currentPdfUrl;
+        pdfIframe.hidden = false;
+        pdfCloseBtn.hidden = false;
+
+        if (vwConfigured) {
+          // Show the multi-step export flow
+          exportSteps.hidden = false;
+          // Step 1 already enabled; steps 2+3 start disabled (handled by CSS class)
+          updateDownloadState();
+        } else {
+          pdfDownloadBtn.hidden = false;
+          updateDownloadState();
+        }
+      } catch (err) {
+        addStatusMsg("error", "Could not display PDF: " + err.message);
+        pdfCloseBtn.hidden = false;
+      }
+    });
+
+    es.onerror = () => {
+      if (es.readyState === EventSource.CLOSED) return;
+      es.close();
+      _activeEs = null;
+      stopTimer();
+      pdfProgress.hidden  = true;
+      pdfStatusbar.hidden = false;
+      pdfCloseBtn.hidden  = false;
+      statusbarStage.textContent = "Connection lost";
+      addStatusMsg("error", "SSE connection closed unexpectedly.");
+    };
+  }
+
+  // ── Template selector ──────────────────────────────────────────
+  document.querySelectorAll(".drawer__template-item").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const name = btn.dataset.template;
+      try {
+        const resp = await fetch("/dashboard/api/template/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (!resp.ok) return;
+        document.querySelectorAll(".drawer__template-item").forEach((b) =>
+          b.classList.toggle("drawer__template-item--active", b === btn)
+        );
+      } catch (_) {}
+    });
+  });
+
+  // ── Vaultwarden: modal ─────────────────────────────────────────
+  const vwModalBackdrop = document.getElementById("vw-modal-backdrop");
+  const vwModalClose    = document.getElementById("vw-modal-close");
+  const vwModalSubmit   = document.getElementById("vw-modal-submit");
+  const vwClientId      = document.getElementById("vw-client-id");
+  const vwClientSecret  = document.getElementById("vw-client-secret");
+  const vwMasterPw      = document.getElementById("vw-master-pw");
+
+  function openVwModal() {
+    if (vwModalBackdrop) vwModalBackdrop.hidden = false;
+    if (vwClientId) vwClientId.focus();
+  }
+  function closeVwModal() {
+    if (vwModalBackdrop) vwModalBackdrop.hidden = true;
+  }
+
+  if (vwConnectBtn)    vwConnectBtn.addEventListener("click", openVwModal);
+  if (vwModalClose)    vwModalClose.addEventListener("click", closeVwModal);
+  if (vwModalBackdrop) {
+    vwModalBackdrop.addEventListener("click", (e) => {
+      if (e.target === vwModalBackdrop) closeVwModal();
+    });
+  }
+
+  if (vwModalSubmit) {
+    vwModalSubmit.addEventListener("click", async () => {
+      const clientId     = vwClientId.value.trim();
+      const clientSecret = vwClientSecret.value.trim();
+      const masterPw     = vwMasterPw.value.trim();
+      if (!clientId || !clientSecret || !masterPw) {
+        showFlash("error", "All three fields are required.");
+        return;
+      }
+      vwModalSubmit.disabled    = true;
+      vwModalSubmit.textContent = "Connecting…";
+      try {
+        const resp = await fetch("/dashboard/api/vault/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, master_password: masterPw }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showFlash("error", data.error || "Connection failed.");
+        } else {
+          if (vwConnectBtn) vwConnectBtn.closest(".drawer__vaultwarden").hidden = true;
+          showFlash("success", "Connected to Vaultwarden.");
+          closeVwModal();
+          // Clear sensitive fields
+          vwClientSecret.value = "";
+          vwMasterPw.value     = "";
+        }
+      } catch (err) {
+        showFlash("error", "Connection error: " + err.message);
+      } finally {
+        vwModalSubmit.disabled    = false;
+        vwModalSubmit.textContent = "Connect";
+      }
+    });
+  }
+
+  // ── Vaultwarden: export steps ──────────────────────────────────
+  function freezeExportFields() {
+    exportFilename.disabled = true;
+    exportOwnerPw.disabled  = true;
+    exportUserPw.disabled   = true;
+    document.getElementById("randomize-owner-pw").disabled = true;
+    document.getElementById("randomize-user-pw").disabled  = true;
+  }
+
+  function unfreezeExportFields() {
+    exportFilename.disabled = false;
+    exportOwnerPw.disabled  = false;
+    exportUserPw.disabled   = false;
+    document.getElementById("randomize-owner-pw").disabled = false;
+    document.getElementById("randomize-user-pw").disabled  = false;
+  }
+
+  function resetVaultSteps() {
+    if (!vwConfigured) return;
+    stepVault.hidden     = false;
+    stepSend.hidden      = true;
+    stepCopyLink.hidden  = true;
+    stepDownload.hidden  = true;
+    if (btnSaveVault)  btnSaveVault.disabled  = false;
+    if (btnCreateSend) btnCreateSend.disabled = false;
+    unfreezeExportFields();
+  }
+
+  // Expiry selector
+  if (exportSteps) {
+    document.querySelectorAll(".expiry-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".expiry-btn").forEach((b) =>
+          b.classList.toggle("expiry-btn--active", b === btn)
+        );
+        _expiryDays = parseInt(btn.dataset.days, 10);
+      });
+    });
+  }
+
+  // Step 1: Save to Vault
+  if (btnSaveVault) {
+    btnSaveVault.addEventListener("click", async () => {
+      if (!exportUserPw.value.trim()) {
+        showFlash("error", "Set a user password before saving to vault.");
+        return;
+      }
+      btnSaveVault.disabled = true;
+      btnSaveVault.textContent = "Saving…";
+      const title = _activeReportTitle || exportFilename.value || `report-${_activeReportId}.pdf`;
+      const now   = new Date().toISOString().slice(0, 10);
+      const notes = [
+        "Generated via Ghostbadger",
+        "---",
+        `Date: ${now}`,
+        `Hash: ${_activePdfHash || "n/a"}`,
+        `Owner: ${exportOwnerPw.value}`,
+      ].join("\n");
+      try {
+        const resp = await fetch("/dashboard/api/vault/credential", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name:     title,
+            password: exportUserPw.value,
+            notes:    notes,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showFlash("error", data.error || "Failed to save to vault.");
+          btnSaveVault.disabled    = false;
+          btnSaveVault.textContent = "Save to Vault";
+          return;
+        }
+        showFlash("success", "Password saved to Vaultwarden.");
+        freezeExportFields();
+        stepVault.hidden = true;
+        stepSend.hidden  = false;
+      } catch (err) {
+        showFlash("error", "Vault error: " + err.message);
+        btnSaveVault.disabled    = false;
+        btnSaveVault.textContent = "Save to Vault";
+      }
+    });
+  }
+
+  // Step 2: Create Send
+  if (btnCreateSend) {
+    btnCreateSend.addEventListener("click", async () => {
+      btnCreateSend.disabled    = true;
+      btnCreateSend.textContent = "Creating…";
+      const title = _activeReportTitle || exportFilename.value || `report-${_activeReportId}.pdf`;
+      const text  = exportUserPw.value;
+      try {
+        const resp = await fetch("/dashboard/api/vault/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name:        title,
+            text:        text,
+            delete_days: _expiryDays,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showFlash("error", data.error || "Failed to create Send.");
+          btnCreateSend.disabled    = false;
+          btnCreateSend.textContent = "Create Send Link";
+          return;
+        }
+        const accessUrl = data.accessUrl || data.access_url || "";
+        sendLinkInput.value = accessUrl;
+        stepSend.hidden      = true;
+        stepCopyLink.hidden  = false;
+      } catch (err) {
+        showFlash("error", "Send error: " + err.message);
+        btnCreateSend.disabled    = false;
+        btnCreateSend.textContent = "Create Send Link";
+      }
+    });
+  }
+
+  // Step 3: Copy Send Link
+  if (btnCopyLink) {
+    btnCopyLink.addEventListener("click", async () => {
+      const url = sendLinkInput.value;
+      if (!url) return;
+      await navigator.clipboard.writeText(url).catch(() => {});
+      btnCopyLink.textContent = "Copied!";
+      setTimeout(() => { btnCopyLink.textContent = "Copy"; }, 2000);
+    });
+  }
+
+  if (btnConfirmCopy) {
+    btnConfirmCopy.addEventListener("click", () => {
+      stepCopyLink.hidden = true;
+      stepDownload.hidden = false;
+      updateDownloadState();
+    });
+  }
+
+})();
