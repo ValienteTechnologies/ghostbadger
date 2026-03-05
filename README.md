@@ -4,6 +4,7 @@
 
 **Ghostbadger** is a specialized PDF rendering engine designed to bridge the gap between [Ghostwriter](https://github.com/GhostManager/Ghostwriter) and secure client delivery. It automates the generation of polished, password-protected PDF reports by integrating directly with Ghostwriter's GraphQL API and [Vaultwarden](https://github.com/dani-garcia/vaultwarden).
 
+
 ---
 
 ### The Blog Post
@@ -77,3 +78,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit patches, new templates,
 ### AI Generated Overview
 
 [READMEg.md](READMEg.md)
+
+---
+
+### Acknowledgements
+
+The PDF rendering pipeline is inspired by [SysReptor](https://github.com/Syslifters/sysreptor)'s PDF export engine, reusing its Vue-based template rendering bundle and template format.
