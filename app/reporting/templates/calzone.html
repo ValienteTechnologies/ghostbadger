@@ -229,9 +229,12 @@
         </div>
     </div>
 
-    <div v-if="report.extra_fields && report.extra_fields.provided_users">
+    <div v-if="report.whitecards && report.whitecards.length">
         <h2 id="provided-users" class="in-toc numbered">User Accounts and Permissions</h2>
-        <markdown :text="report.extra_fields.provided_users" />
+        <div v-for="wc in report.whitecards" style="margin-bottom: 1em;">
+            <strong>{{ wc.title }}</strong>
+            <markdown :text="wc.description" />
+        </div>
     </div>
     <pagebreak />
 </section>
@@ -325,10 +328,7 @@
 </section>
 
 
-<section class="appendix" v-if="report.extra_fields && report.extra_fields.appendix_sections && report.extra_fields.appendix_sections.length">
+<section class="appendix" v-if="report.extra_fields && report.extra_fields.appendix">
     <h1 id="appendix" class="in-toc numbered">Appendix</h1>
-    <div v-for="section in report.extra_fields.appendix_sections">
-        <h2 class="in-toc numbered">{{ section.title }}</h2>
-        <markdown :text="section.content" />
-    </div>
+    <markdown :text="report.extra_fields.appendix" />
 </section>
