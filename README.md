@@ -6,6 +6,10 @@
 
 ---
 
+### The Blog Post
+
+https://valientetechnologies.com/blog/posts/introducing-ghostbadger/
+
 > [!NOTE]  
 > This tool was developed for our specific internal workflows. It is provided "as-is" without any guarantee or formal support. Use it at your own risk and expect to customize it to fit your specific needs. We decided to polish the code, modularize the integration, and release it to the community.
 
@@ -69,10 +73,6 @@ See [app/reporting/resources/README.md](app/reporting/resources/README.md) for f
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit patches, new templates, or other improvements.
 
 ---
-
-### The Blog Post
-
-https://valientetechnologies.com/blog/posts/introducing-ghostbadger/
 
 ### AI Generated Overview
 
