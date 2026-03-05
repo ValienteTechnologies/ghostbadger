@@ -30,6 +30,9 @@ docker compose up -d
 
 Templates and assets are seeded from the image on first run into `./resources/` — edit them freely.
 
+> [!WARNING]
+> The included templates are for demo purposes only. Do not use them for real client deliverables without reviewing and customizing them to your needs.
+
 ---
 
 **Without Docker Compose**

@@ -15,6 +15,9 @@ resources/
     _evidence/        # Auto-populated at runtime — do not edit
 ```
 
+> [!WARNING]
+> The included templates are for demo purposes only. Do not use them for real client deliverables without reviewing and customizing them to your needs.
+
 A template is active when both `templates/<name>.html` and `templates/<name>.css` exist with the same stem. The name is what appears in the template selector in the UI.
 
 > [!TIP]
