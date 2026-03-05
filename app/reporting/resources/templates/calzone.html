@@ -119,7 +119,7 @@
             <tbody>
                 <tr v-for="finding in finding_groups[0].findings" class="table-row-link" :class="'risk-bg-' + finding.cvss.level">
                     <td align="center">
-                        <ref :to="'f' + finding.id">{{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ finding_groups[0].findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}</ref>
+                        <ref :to="'f' + finding.id">{{ ['C', 'H', 'M', 'L', 'I'][finding.cvss.level_number - 1] }}{{ finding_groups[0].findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}</ref>
                     </td>
                     <td align="center">
                         <ref :to="'f' + finding.id">{{ finding.cvss.score }}</ref>
@@ -253,7 +253,7 @@
             <tr>
                 <th colspan="2">
                     <h2 :id="'f' + finding.id" class="in-toc text-center">
-                        {{ ['I', 'L', 'M', 'H', 'C'][finding.cvss.level_number - 1] }}{{ finding_groups[0].findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}:
+                        {{ ['C', 'H', 'M', 'L', 'I'][finding.cvss.level_number - 1] }}{{ finding_groups[0].findings.filter(f => f.cvss.level === finding.cvss.level).indexOf(finding) + 1 }}:
                         {{ finding.title }}
                     </h2>
                 </th>
