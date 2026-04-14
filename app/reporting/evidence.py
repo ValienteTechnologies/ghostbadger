@@ -1,12 +1,17 @@
 """Fetch and persist report evidence files from Ghostwriter."""
 from __future__ import annotations
 
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from ..ghostwriter import GhostwriterClient, GhostwriterError
 
 _EVIDENCE_DIR = Path(__file__).parent / "resources" / "assets" / "_evidence"
+
+# When set, used as a fallback if HTTP fetch fails (e.g. for local Docker deployments
+# where Ghostwriter's media volume is mounted directly into this container).
+_MEDIA_PATH = Path(os.environ["GHOSTWRITER_MEDIA_PATH"]) if os.environ.get("GHOSTWRITER_MEDIA_PATH") else None
 
 
 def local_path(evidence_path: str) -> Path:
@@ -36,11 +41,22 @@ def collect_paths(obj: object) -> set[str]:
 def _fetch_and_save(client: GhostwriterClient, path: str) -> tuple[str, bool]:
     dest = local_path(path)
     dest.parent.mkdir(parents=True, exist_ok=True)
+
+    # Try HTTP first (works for remote Ghostwriter instances with proper ALLOWED_HOSTS)
     try:
         dest.write_bytes(client.fetch_evidence(path))
         return path, True
     except GhostwriterError:
-        return path, False
+        pass
+
+    # Fall back to direct volume read (for local Docker deployments)
+    if _MEDIA_PATH is not None:
+        src = _MEDIA_PATH / path
+        if src.exists():
+            dest.write_bytes(src.read_bytes())
+            return path, True
+
+    return path, False
 
 
 def sync_evidence(
