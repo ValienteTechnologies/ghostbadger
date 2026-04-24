@@ -16,13 +16,60 @@
         <path d="M20 29 Q24 32 28 29" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
       </svg>
       <h1 class="onboarding__title">Ghostbadger</h1>
-      <p class="onboarding__subtitle">Enter your Ghostwriter API token to get started.</p>
+      <p class="onboarding__subtitle" id="form-subtitle">Sign in with your Ghostwriter credentials.</p>
     </div>
 
-    <form class="onboarding__form" method="POST" action="{{ url_for('onboarding.index') }}" novalidate>
+    {# ── Username / password form ─────────────────────────────────────────── #}
+    <form
+      id="form-password"
+      class="onboarding__form{% if mode == 'token' %} onboarding__form--hidden{% endif %}"
+      method="POST"
+      action="{{ url_for('onboarding.index') }}"
+      novalidate
+    >
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-      <div class="field {% if error %}field--error{% endif %}">
+      <div class="field {% if error and mode != 'token' %}field--error{% endif %}">
+        <label class="field__label" for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="field__input"
+          autocomplete="username"
+          required
+        />
+      </div>
+
+      <div class="field {% if error and mode != 'token' %}field--error{% endif %}">
+        <label class="field__label" for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="field__input"
+          autocomplete="current-password"
+          required
+        />
+        {% if error and mode != 'token' %}
+          <p id="pw-error" class="field__error" role="alert">{{ error }}</p>
+        {% endif %}
+      </div>
+
+      <button class="btn btn--primary btn--full" type="submit">Sign in</button>
+    </form>
+
+    {# ── Token paste form ─────────────────────────────────────────────────── #}
+    <form
+      id="form-token"
+      class="onboarding__form{% if mode != 'token' %} onboarding__form--hidden{% endif %}"
+      method="POST"
+      action="{{ url_for('onboarding.index') }}"
+      novalidate
+    >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="field {% if error and mode == 'token' %}field--error{% endif %}">
         <label class="field__label" for="token">Ghostwriter JWT Token</label>
         <textarea
           id="token"
@@ -32,10 +79,10 @@
           placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
           autocomplete="off"
           spellcheck="false"
-          aria-describedby="{% if error %}token-error{% endif %} token-hint"
+          aria-describedby="{% if error and mode == 'token' %}token-error{% endif %} token-hint"
           required
         ></textarea>
-        {% if error %}
+        {% if error and mode == 'token' %}
           <p id="token-error" class="field__error" role="alert">{{ error }}</p>
         {% endif %}
         <p id="token-hint" class="field__hint">
@@ -46,6 +93,42 @@
       <button class="btn btn--primary btn--full" type="submit">Connect</button>
     </form>
 
+    <p class="onboarding__toggle">
+      <a href="#" id="toggle-link">
+        {% if mode == 'token' %}Sign in with username &amp; password instead{% else %}Paste a JWT token instead{% endif %}
+      </a>
+    </p>
+
   </div>
 </div>
+
+<script>
+  (function () {
+    var formPw    = document.getElementById('form-password');
+    var formTok   = document.getElementById('form-token');
+    var link      = document.getElementById('toggle-link');
+    var subtitle  = document.getElementById('form-subtitle');
+    var showToken = {{ 'true' if mode == 'token' else 'false' }};
+
+    function update() {
+      if (showToken) {
+        formPw.classList.add('onboarding__form--hidden');
+        formTok.classList.remove('onboarding__form--hidden');
+        subtitle.textContent = 'Enter your Ghostwriter API token to get started.';
+        link.textContent = 'Sign in with username & password instead';
+      } else {
+        formTok.classList.add('onboarding__form--hidden');
+        formPw.classList.remove('onboarding__form--hidden');
+        subtitle.textContent = 'Sign in with your Ghostwriter credentials.';
+        link.textContent = 'Paste a JWT token instead';
+      }
+    }
+
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      showToken = !showToken;
+      update();
+    });
+  })();
+</script>
 {% endblock %}

@@ -143,6 +143,22 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   gap: 1.25rem;
 }
 
+.onboarding__form--hidden { display: none; }
+
+.onboarding__toggle {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: .8125rem;
+  color: var(--color-muted);
+}
+
+.onboarding__toggle a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.onboarding__toggle a:hover { text-decoration: underline; }
+
 .field { display: flex; flex-direction: column; gap: .375rem; }
 
 .field__label {
