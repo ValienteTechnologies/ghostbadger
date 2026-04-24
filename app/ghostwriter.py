@@ -1,4 +1,5 @@
 """Ghostwriter GraphQL API client."""
+import base64
 import requests
 
 _GRAPHQL_PATH = "/v1/graphql"
@@ -38,6 +39,14 @@ _GENERATE_REPORT_MUTATION = """
 mutation GenerateReport($id: Int!) {
   generateReport(id: $id) {
     reportData
+  }
+}
+"""
+
+_DOWNLOAD_EVIDENCE_QUERY = """
+query DownloadEvidence($evidenceId: Int!) {
+  downloadEvidence(evidenceId: $evidenceId) {
+    fileBase64
   }
 }
 """
@@ -101,16 +110,9 @@ class GhostwriterClient:
         return data["generateReport"]["reportData"]
 
     def fetch_evidence(self, evidence_id: int, path: str) -> bytes:
-        """Fetch a binary evidence file by its integer ID."""
-        url = f"{self._base_url}/reporting/evidence/download/{evidence_id}"
-        try:
-            resp = requests.get(
-                url,
-                headers={k: v for k, v in self._headers.items() if k != "Content-Type"},
-                timeout=(5, 30),
-                verify=self._verify_ssl,
-            )
-            resp.raise_for_status()
-            return resp.content
-        except requests.RequestException as exc:
-            raise GhostwriterError(f"Failed to fetch evidence {path}: {exc}") from exc
+        """Fetch a binary evidence file via the downloadEvidence GraphQL mutation."""
+        data = self._gql(_DOWNLOAD_EVIDENCE_QUERY, {"evidenceId": evidence_id})
+        encoded = data.get("downloadEvidence", {}).get("fileBase64")
+        if not encoded:
+            raise GhostwriterError(f"No fileBase64 returned for evidence {path}")
+        return base64.b64decode(encoded)
