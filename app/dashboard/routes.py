@@ -40,6 +40,8 @@ def _client() -> GhostwriterClient:
         base_url=current_app.config["GHOSTWRITER_URL"],
         token=session["gw_token"],
         verify_ssl=current_app.config["GHOSTWRITER_VERIFY_SSL"],
+        cf_client_id=current_app.config["GHOSTWRITER_CF_CLIENT_ID"],
+        cf_client_secret=current_app.config["GHOSTWRITER_CF_CLIENT_SECRET"],
     )
 
 
@@ -107,6 +109,8 @@ def view_report_pdf(report_id: int):
     gw_url        = current_app.config["GHOSTWRITER_URL"]
     gw_token      = session["gw_token"]
     gw_verify_ssl = current_app.config["GHOSTWRITER_VERIFY_SSL"]
+    gw_cf_id      = current_app.config["GHOSTWRITER_CF_CLIENT_ID"]
+    gw_cf_secret  = current_app.config["GHOSTWRITER_CF_CLIENT_SECRET"]
     language      = current_app.config["RENDER_LANGUAGE"]
 
     _purge_old_jobs()
@@ -116,14 +120,14 @@ def view_report_pdf(report_id: int):
 
     threading.Thread(
         target=_run_view,
-        args=(job_id, report_id, template, gw_url, gw_token, gw_verify_ssl, language),
+        args=(job_id, report_id, template, gw_url, gw_token, gw_verify_ssl, language, gw_cf_id, gw_cf_secret),
         daemon=True,
     ).start()
 
     return jsonify({"job_id": job_id}), 202
 
 
-def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str, gw_verify_ssl: bool = True, language: str = "en") -> None:
+def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str, gw_verify_ssl: bool = True, language: str = "en", gw_cf_id: str = "", gw_cf_secret: str = "") -> None:
     job = _render_jobs[job_id]
     q   = job["q"]
     t0  = time.monotonic()
@@ -135,7 +139,7 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str,
         # ── Stage 1: Generate report JSON ─────────────────────────
         emit("stage", {"stage": "generate", "label": "Fetching report data…"})
 
-        client = GhostwriterClient(base_url=gw_url, token=gw_token, verify_ssl=gw_verify_ssl)
+        client = GhostwriterClient(base_url=gw_url, token=gw_token, verify_ssl=gw_verify_ssl, cf_client_id=gw_cf_id, cf_client_secret=gw_cf_secret)
         raw_b64     = client.generate_report(report_id)
         decoded     = base64.b64decode(raw_b64).decode("utf-8")
         report_json = _json.loads(decoded)

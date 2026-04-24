@@ -141,6 +141,8 @@ packages/
 | `SECRET_KEY` | Yes | Flask session signing key |
 | `GHOSTWRITER_URL` | Yes | Base URL of Ghostwriter instance |
 | `GHOSTWRITER_VERIFY_SSL` | No | Set to `false` to disable SSL verification for self-signed certs (default: `true`) |
+| `GHOSTWRITER_CF_CLIENT_ID` | No | Cloudflare Access service token client ID (if Ghostwriter is behind CF Access) |
+| `GHOSTWRITER_CF_CLIENT_SECRET` | No | Cloudflare Access service token secret |
 | `GHOSTWRITER_MEDIA_PATH` | No | Path to Ghostwriter media volume for evidence image fallback (local Docker deployments) |
 | `RENDER_LANGUAGE` | No | BCP 47 language tag passed to the Vue rendering bundle (default: `en`) |
 | `VAULTWARDEN_URL` | No | Vaultwarden server URL |

@@ -12,6 +12,8 @@ class Config:
 
     GHOSTWRITER_URL = os.environ.get("GHOSTWRITER_URL", "")
     GHOSTWRITER_VERIFY_SSL = os.environ.get("GHOSTWRITER_VERIFY_SSL", "true").lower() not in ("false", "0", "no")
+    GHOSTWRITER_CF_CLIENT_ID     = os.environ.get("GHOSTWRITER_CF_CLIENT_ID", "")
+    GHOSTWRITER_CF_CLIENT_SECRET = os.environ.get("GHOSTWRITER_CF_CLIENT_SECRET", "")
 
     RENDER_LANGUAGE = os.environ.get("RENDER_LANGUAGE", "en")
 

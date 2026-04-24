@@ -48,7 +48,14 @@ class GhostwriterError(Exception):
 
 
 class GhostwriterClient:
-    def __init__(self, base_url: str, token: str, verify_ssl: bool = True):
+    def __init__(
+        self,
+        base_url: str,
+        token: str,
+        verify_ssl: bool = True,
+        cf_client_id: str = "",
+        cf_client_secret: str = "",
+    ):
         self._base_url = base_url.rstrip("/")
         self._url = self._base_url + _GRAPHQL_PATH
         self._verify_ssl = verify_ssl
@@ -56,6 +63,9 @@ class GhostwriterClient:
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
+        if cf_client_id and cf_client_secret:
+            self._headers["CF-Access-Client-Id"] = cf_client_id
+            self._headers["CF-Access-Client-Secret"] = cf_client_secret
 
     def _gql(self, query: str, variables: dict | None = None) -> dict:
         payload: dict = {"query": query}
@@ -96,7 +106,7 @@ class GhostwriterClient:
         try:
             resp = requests.get(
                 url,
-                headers={"Authorization": self._headers["Authorization"]},
+                headers={k: v for k, v in self._headers.items() if k != "Content-Type"},
                 timeout=(5, 30),
                 verify=self._verify_ssl,
             )
