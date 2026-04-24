@@ -16,7 +16,7 @@ from ..auth import require_token
 from ..extensions import csrf
 from ..ghostwriter import GhostwriterClient, GhostwriterError
 from ..reporting import get_available_templates
-from ..reporting.evidence import sync_evidence
+from ..reporting.evidence import clear_evidence_cache, sync_evidence
 from ..rendering.chromium import render_to_html
 from ..rendering.pipeline import BUNDLE, make_vue_data
 from ..rendering.resources import build
@@ -107,6 +107,7 @@ def view_report_pdf(report_id: int):
     gw_url        = current_app.config["GHOSTWRITER_URL"]
     gw_token      = session["gw_token"]
     gw_verify_ssl = current_app.config["GHOSTWRITER_VERIFY_SSL"]
+    language      = current_app.config["RENDER_LANGUAGE"]
 
     _purge_old_jobs()
 
@@ -115,14 +116,14 @@ def view_report_pdf(report_id: int):
 
     threading.Thread(
         target=_run_view,
-        args=(job_id, report_id, template, gw_url, gw_token, gw_verify_ssl),
+        args=(job_id, report_id, template, gw_url, gw_token, gw_verify_ssl, language),
         daemon=True,
     ).start()
 
     return jsonify({"job_id": job_id}), 202
 
 
-def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str, gw_verify_ssl: bool = True) -> None:
+def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str, gw_verify_ssl: bool = True, language: str = "en") -> None:
     job = _render_jobs[job_id]
     q   = job["q"]
     t0  = time.monotonic()
@@ -159,7 +160,7 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str,
         bundle_js     = BUNDLE.read_text("utf-8")
         resources     = build(template, report_json)
 
-        html = render_to_html(vue_data, template_html, css, bundle_js, "tr", resources)
+        html = render_to_html(vue_data, template_html, css, bundle_js, language, resources)
 
         # ── Stage 4: WeasyPrint ────────────────────────────────────
         emit("stage", {"stage": "weasyprint", "label": "Generating PDF…"})
@@ -270,6 +271,16 @@ def download_pdf(job_id: str):
         mimetype="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── Cache routes ──────────────────────────────────────────────────────────────
+
+@bp.route("/api/cache/clear", methods=["POST"])
+@csrf.exempt
+@require_token
+def cache_clear():
+    count = clear_evidence_cache()
+    return jsonify({"deleted": count})
 
 
 # ── Vaultwarden routes ─────────────────────────────────────────────────────────

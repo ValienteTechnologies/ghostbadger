@@ -54,4 +54,9 @@ def create_app(config_name: str | None = None) -> Flask:
     from .dashboard import bp as dashboard_bp
     app.register_blueprint(dashboard_bp)
 
+    @app.get("/health")
+    def health():
+        from flask import jsonify
+        return jsonify({"status": "ok"})
+
     return app

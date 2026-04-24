@@ -13,6 +13,8 @@ class Config:
     GHOSTWRITER_URL = os.environ.get("GHOSTWRITER_URL", "")
     GHOSTWRITER_VERIFY_SSL = os.environ.get("GHOSTWRITER_VERIFY_SSL", "true").lower() not in ("false", "0", "no")
 
+    RENDER_LANGUAGE = os.environ.get("RENDER_LANGUAGE", "en")
+
     VAULTWARDEN_URL           = os.environ.get("VAULTWARDEN_URL", "")
     VAULTWARDEN_ORG_ID        = os.environ.get("VAULTWARDEN_ORG_ID", "")
     VAULTWARDEN_COLLECTION_ID = os.environ.get("VAULTWARDEN_COLLECTION_ID", "")

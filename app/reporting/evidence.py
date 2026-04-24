@@ -59,6 +59,24 @@ def _fetch_and_save(client: GhostwriterClient, path: str) -> tuple[str, bool]:
     return path, False
 
 
+def clear_evidence_cache() -> int:
+    """Delete all cached evidence files. Returns the number of files removed."""
+    if not _EVIDENCE_DIR.exists():
+        return 0
+    count = 0
+    for f in _EVIDENCE_DIR.rglob("*"):
+        if f.is_file():
+            f.unlink()
+            count += 1
+    for d in sorted(_EVIDENCE_DIR.rglob("*"), reverse=True):
+        if d.is_dir():
+            try:
+                d.rmdir()
+            except OSError:
+                pass
+    return count
+
+
 def sync_evidence(
     report_json: dict,
     client: GhostwriterClient,
