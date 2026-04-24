@@ -222,7 +222,9 @@
         <label class="field__label" for="vw-master-pw">Master Password</label>
         <input class="field__input" type="password" id="vw-master-pw" placeholder="Required" autocomplete="new-password">
       </div>
-      <p class="modal__hint">Credentials are kept in your session only — never stored on disk.</p>
+      <p class="modal__hint">
+        Kept in session only, never stored on disk.{% if vaultwarden_apikey_url %} <a href="{{ vaultwarden_apikey_url }}" target="_blank" rel="noopener">Get your API key →</a>{% endif %}
+      </p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--primary btn--full" id="vw-modal-submit">Connect</button>

@@ -56,6 +56,7 @@ def index():
         error = str(exc)
     templates = get_available_templates()
     selected = session.get("selected_template") or (templates[0].name if templates else None)
+    vw_url = current_app.config.get("VAULTWARDEN_URL", "").rstrip("/")
     return render_template(
         "dashboard/index.html",
         projects=projects,
@@ -64,6 +65,7 @@ def index():
         selected_template=selected,
         vaultwarden_configured=is_vaultwarden_configured(current_app),
         vault_connected=is_vault_connected(),
+        vaultwarden_apikey_url=f"{vw_url}/#/settings/security/security-keys" if vw_url else None,
     )
 
 
