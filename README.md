@@ -140,6 +140,8 @@ packages/
 |---|---|---|
 | `SECRET_KEY` | Yes | Flask session signing key |
 | `GHOSTWRITER_URL` | Yes | Base URL of Ghostwriter instance |
+| `GHOSTWRITER_VERIFY_SSL` | No | Set to `false` to disable SSL verification for self-signed certs (default: `true`) |
+| `GHOSTWRITER_MEDIA_PATH` | No | Path to Ghostwriter media volume for evidence image fallback (local Docker deployments) |
 | `VAULTWARDEN_URL` | No | Vaultwarden server URL |
 | `VAULTWARDEN_ORG_ID` | No | Organisation ID for vault items |
 | `VAULTWARDEN_COLLECTION_ID` | No | Collection ID for vault items |
