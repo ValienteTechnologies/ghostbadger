@@ -4,6 +4,25 @@ import requests
 
 _GRAPHQL_PATH = "/v1/graphql"
 
+_LOGIN_MUTATION = """
+mutation Login($username: String!, $password: String!) {
+  login(username: $username, password: $password) {
+    token
+    expires
+  }
+}
+"""
+
+_WHOAMI_QUERY = """
+query Whoami {
+  whoami {
+    username
+    role
+    expires
+  }
+}
+"""
+
 _RECENT_PROJECTS_QUERY = """
 query RecentProjects($limit: Int!) {
   project(order_by: {startDate: desc}, limit: $limit) {
@@ -94,6 +113,46 @@ class GhostwriterClient:
             msgs = "; ".join(e.get("message", "unknown") for e in body["errors"])
             raise GhostwriterError(f"GraphQL error: {msgs}")
         return body.get("data", {})
+
+    @classmethod
+    def login(
+        cls,
+        base_url: str,
+        username: str,
+        password: str,
+        verify_ssl: bool = True,
+        cf_client_id: str = "",
+        cf_client_secret: str = "",
+    ) -> tuple[str, int | None]:
+        """Authenticate with the login mutation. Returns (token, expires_unix)."""
+        headers = {"Content-Type": "application/json"}
+        if cf_client_id and cf_client_secret:
+            headers["CF-Access-Client-Id"] = cf_client_id
+            headers["CF-Access-Client-Secret"] = cf_client_secret
+        url = base_url.rstrip("/") + _GRAPHQL_PATH
+        payload = {
+            "query": _LOGIN_MUTATION,
+            "variables": {"username": username, "password": password},
+        }
+        try:
+            resp = requests.post(url, json=payload, headers=headers, timeout=15, verify=verify_ssl)
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            raise GhostwriterError(f"Login request failed: {exc}") from exc
+        body = resp.json()
+        if "errors" in body:
+            msgs = "; ".join(e.get("message", "unknown") for e in body["errors"])
+            raise GhostwriterError(f"Login failed: {msgs}")
+        result = body.get("data", {}).get("login", {})
+        token = result.get("token")
+        if not token:
+            raise GhostwriterError("Login succeeded but no token was returned.")
+        return token, result.get("expires")
+
+    def whoami(self) -> dict:
+        """Return {username, role, expires} for the current token."""
+        data = self._gql(_WHOAMI_QUERY)
+        return data.get("whoami", {})
 
     def get_recent_projects(self, limit: int = 4) -> list[dict]:
         data = self._gql(_RECENT_PROJECTS_QUERY, {"limit": limit})
