@@ -48,9 +48,10 @@ class GhostwriterError(Exception):
 
 
 class GhostwriterClient:
-    def __init__(self, base_url: str, token: str):
+    def __init__(self, base_url: str, token: str, verify_ssl: bool = True):
         self._base_url = base_url.rstrip("/")
         self._url = self._base_url + _GRAPHQL_PATH
+        self._verify_ssl = verify_ssl
         self._headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -62,7 +63,8 @@ class GhostwriterClient:
             payload["variables"] = variables
         try:
             resp = requests.post(
-                self._url, json=payload, headers=self._headers, timeout=30
+                self._url, json=payload, headers=self._headers, timeout=30,
+                verify=self._verify_ssl,
             )
             resp.raise_for_status()
         except requests.RequestException as exc:
@@ -92,7 +94,12 @@ class GhostwriterClient:
         """Fetch a binary evidence file. path is relative, e.g. 'evidence/2/foo.png'."""
         url = f"{self._base_url}/media/{path.lstrip('/')}"
         try:
-            resp = requests.get(url, headers=self._headers, timeout=(5, 30))
+            resp = requests.get(
+                url,
+                headers={"Authorization": self._headers["Authorization"]},
+                timeout=(5, 30),
+                verify=self._verify_ssl,
+            )
             resp.raise_for_status()
             return resp.content
         except requests.RequestException as exc:

@@ -39,6 +39,7 @@ def _client() -> GhostwriterClient:
     return GhostwriterClient(
         base_url=current_app.config["GHOSTWRITER_URL"],
         token=session["gw_token"],
+        verify_ssl=current_app.config["GHOSTWRITER_VERIFY_SSL"],
     )
 
 
@@ -102,9 +103,10 @@ def view_report_pdf(report_id: int):
     if not template:
         return jsonify({"error": f"Template '{template_name}' not found."}), 400
 
-    # Capture the Ghostwriter URL + token while we're still in request context
-    gw_url   = current_app.config["GHOSTWRITER_URL"]
-    gw_token = session["gw_token"]
+    # Capture config while we're still in request context (background thread has no app context)
+    gw_url        = current_app.config["GHOSTWRITER_URL"]
+    gw_token      = session["gw_token"]
+    gw_verify_ssl = current_app.config["GHOSTWRITER_VERIFY_SSL"]
 
     _purge_old_jobs()
 
@@ -113,14 +115,14 @@ def view_report_pdf(report_id: int):
 
     threading.Thread(
         target=_run_view,
-        args=(job_id, report_id, template, gw_url, gw_token),
+        args=(job_id, report_id, template, gw_url, gw_token, gw_verify_ssl),
         daemon=True,
     ).start()
 
     return jsonify({"job_id": job_id}), 202
 
 
-def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str) -> None:
+def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str, gw_verify_ssl: bool = True) -> None:
     job = _render_jobs[job_id]
     q   = job["q"]
     t0  = time.monotonic()
@@ -132,7 +134,7 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str)
         # ── Stage 1: Generate report JSON ─────────────────────────
         emit("stage", {"stage": "generate", "label": "Fetching report data…"})
 
-        client = GhostwriterClient(base_url=gw_url, token=gw_token)
+        client = GhostwriterClient(base_url=gw_url, token=gw_token, verify_ssl=gw_verify_ssl)
         raw_b64     = client.generate_report(report_id)
         decoded     = base64.b64decode(raw_b64).decode("utf-8")
         report_json = _json.loads(decoded)
