@@ -26,6 +26,12 @@ _MIME = {
 
 _ORIGIN_PREFIX = RENDER_ORIGIN + "/"
 
+_TRANSPARENT_1PX_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDATx\x9cb\x00"
+    b"\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
 
 def _make_fetcher(resources: dict[str, bytes]):
     def fetcher(url: str) -> dict:
@@ -35,8 +41,8 @@ def _make_fetcher(resources: dict[str, bytes]):
                 ext  = Path(path).suffix.lower().lstrip(".")
                 mime = _MIME.get(ext, "application/octet-stream")
                 return {"string": resources[path], "mime_type": mime}
-            logger.debug("WeasyPrint: resource not found: %s", path)
-            raise ValueError(f"Resource not in bundle: {path}")
+            logger.warning("WeasyPrint: resource not in bundle, using placeholder: %s", path)
+            return {"string": _TRANSPARENT_1PX_PNG, "mime_type": "image/png"}
         # Non-local URLs (e.g. file:// for system fonts): use WeasyPrint default
         return default_url_fetcher(url)
 
