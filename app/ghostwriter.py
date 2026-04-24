@@ -100,9 +100,9 @@ class GhostwriterClient:
         data = self._gql(_GENERATE_REPORT_MUTATION, {"id": report_id})
         return data["generateReport"]["reportData"]
 
-    def fetch_evidence(self, path: str) -> bytes:
-        """Fetch a binary evidence file. path is relative, e.g. 'evidence/2/foo.png'."""
-        url = f"{self._base_url}/media/{path.lstrip('/')}"
+    def fetch_evidence(self, evidence_id: int, path: str) -> bytes:
+        """Fetch a binary evidence file by its integer ID."""
+        url = f"{self._base_url}/reporting/evidence/download/{evidence_id}"
         try:
             resp = requests.get(
                 url,

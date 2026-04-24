@@ -23,13 +23,17 @@ def local_path(evidence_path: str) -> Path:
     return _EVIDENCE_DIR / Path(evidence_path).relative_to("evidence")
 
 
-def collect_paths(obj: object) -> set[str]:
-    """Recursively find all evidence path strings in the report JSON."""
-    paths: set[str] = set()
+def collect_paths(obj: object) -> dict[str, int]:
+    """Recursively find all evidence objects in the report JSON.
+
+    Returns a mapping of path -> evidence_id, e.g. {"evidence/2/foo.png": 3}.
+    """
+    paths: dict[str, int] = {}
     if isinstance(obj, dict):
         p = obj.get("path")
-        if isinstance(p, str) and p.startswith("evidence/"):
-            paths.add(p)
+        eid = obj.get("id")
+        if isinstance(p, str) and p.startswith("evidence/") and isinstance(eid, int):
+            paths[p] = eid
         for v in obj.values():
             paths |= collect_paths(v)
     elif isinstance(obj, list):
@@ -38,13 +42,13 @@ def collect_paths(obj: object) -> set[str]:
     return paths
 
 
-def _fetch_and_save(client: GhostwriterClient, path: str) -> tuple[str, bool]:
+def _fetch_and_save(client: GhostwriterClient, evidence_id: int, path: str) -> tuple[str, bool]:
     dest = local_path(path)
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     # Try HTTP first (works for remote Ghostwriter instances with proper ALLOWED_HOSTS)
     try:
-        dest.write_bytes(client.fetch_evidence(path))
+        dest.write_bytes(client.fetch_evidence(evidence_id, path))
         return path, True
     except GhostwriterError:
         pass
@@ -93,7 +97,7 @@ def sync_evidence(
 
     results: dict[str, bool] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = {pool.submit(_fetch_and_save, client, p): p for p in paths}
+        futures = {pool.submit(_fetch_and_save, client, eid, p): p for p, eid in paths.items()}
         for fut in as_completed(futures):
             path, ok = fut.result()
             results[path] = ok
