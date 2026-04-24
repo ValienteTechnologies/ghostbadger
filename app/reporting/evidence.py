@@ -1,17 +1,12 @@
 """Fetch and persist report evidence files from Ghostwriter."""
 from __future__ import annotations
 
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from ..ghostwriter import GhostwriterClient, GhostwriterError
 
 _EVIDENCE_DIR = Path(__file__).parent / "resources" / "assets" / "_evidence"
-
-# When set, used as a fallback if HTTP fetch fails (e.g. for local Docker deployments
-# where Ghostwriter's media volume is mounted directly into this container).
-_MEDIA_PATH = Path(os.environ["GHOSTWRITER_MEDIA_PATH"]) if os.environ.get("GHOSTWRITER_MEDIA_PATH") else None
 
 
 def local_path(evidence_path: str) -> Path:
@@ -42,7 +37,7 @@ def collect_paths(obj: object) -> dict[str, int]:
     return paths
 
 
-def _fetch_and_save(client: GhostwriterClient, evidence_id: int, path: str) -> tuple[str, bool]:
+def _fetch_and_save(client: GhostwriterClient, evidence_id: int, path: str, media_path: Path | None) -> tuple[str, bool]:
     dest = local_path(path)
     dest.parent.mkdir(parents=True, exist_ok=True)
 
@@ -54,8 +49,8 @@ def _fetch_and_save(client: GhostwriterClient, evidence_id: int, path: str) -> t
         pass
 
     # Fall back to direct volume read (for local Docker deployments)
-    if _MEDIA_PATH is not None:
-        src = _MEDIA_PATH / path
+    if media_path is not None:
+        src = media_path / path
         if src.exists():
             dest.write_bytes(src.read_bytes())
             return path, True
@@ -84,20 +79,25 @@ def clear_evidence_cache() -> int:
 def sync_evidence(
     report_json: dict,
     client: GhostwriterClient,
+    media_path: str = "",
     max_workers: int = 6,
 ) -> dict[str, bool]:
     """Fetch all evidence referenced in report_json and save under _evidence/.
 
+    media_path: optional filesystem path to Ghostwriter's media volume (fallback
+    for local Docker deployments where the volume is mounted into this container).
+
     Returns {evidence_path: success} for every path found.
-    Missing files are saved silently; the caller sees False for failures.
     """
     paths = collect_paths(report_json)
     if not paths:
         return {}
 
+    mp = Path(media_path) if media_path else None
+
     results: dict[str, bool] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = {pool.submit(_fetch_and_save, client, eid, p): p for p, eid in paths.items()}
+        futures = {pool.submit(_fetch_and_save, client, eid, p, mp): p for p, eid in paths.items()}
         for fut in as_completed(futures):
             path, ok = fut.result()
             results[path] = ok

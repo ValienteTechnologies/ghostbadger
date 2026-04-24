@@ -111,6 +111,7 @@ def view_report_pdf(report_id: int):
     gw_verify_ssl = current_app.config["GHOSTWRITER_VERIFY_SSL"]
     gw_cf_id      = current_app.config["GHOSTWRITER_CF_CLIENT_ID"]
     gw_cf_secret  = current_app.config["GHOSTWRITER_CF_CLIENT_SECRET"]
+    gw_media_path = current_app.config["GHOSTWRITER_MEDIA_PATH"]
     language      = current_app.config["RENDER_LANGUAGE"]
 
     _purge_old_jobs()
@@ -120,14 +121,14 @@ def view_report_pdf(report_id: int):
 
     threading.Thread(
         target=_run_view,
-        args=(job_id, report_id, template, gw_url, gw_token, gw_verify_ssl, language, gw_cf_id, gw_cf_secret),
+        args=(job_id, report_id, template, gw_url, gw_token, gw_verify_ssl, language, gw_cf_id, gw_cf_secret, gw_media_path),
         daemon=True,
     ).start()
 
     return jsonify({"job_id": job_id}), 202
 
 
-def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str, gw_verify_ssl: bool = True, language: str = "en", gw_cf_id: str = "", gw_cf_secret: str = "") -> None:
+def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str, gw_verify_ssl: bool = True, language: str = "en", gw_cf_id: str = "", gw_cf_secret: str = "", gw_media_path: str = "") -> None:
     job = _render_jobs[job_id]
     q   = job["q"]
     t0  = time.monotonic()
@@ -147,7 +148,7 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str,
         # ── Stage 2: Evidence ──────────────────────────────────────
         emit("stage", {"stage": "evidence", "label": "Fetching evidence…"})
 
-        evidence_results = sync_evidence(report_json, client)
+        evidence_results = sync_evidence(report_json, client, media_path=gw_media_path)
         fetched = sum(1 for ok in evidence_results.values() if ok)
         failed  = sum(1 for ok in evidence_results.values() if not ok)
         emit("evidence", {"fetched": fetched, "failed": failed})
