@@ -1,6 +1,7 @@
 """Orchestrate the full report → PDF pipeline."""
 from __future__ import annotations
 
+from html.parser import HTMLParser
 from pathlib import Path
 
 from ..reporting import ReportTemplate
@@ -18,6 +19,21 @@ _SEVERITY: dict[str, tuple[int, str]] = {
     "informational": (5, "info"),
     "info":          (5, "info"),
 }
+
+class _TextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self._chunks: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self._chunks.append(data)
+
+
+def _is_blank(v: str) -> bool:
+    """True if v contains no visible text content (handles plain strings and HTML)."""
+    p = _TextExtractor()
+    p.feed(v)
+    return not ''.join(p._chunks).strip()
 
 
 def make_vue_data(raw: dict) -> dict:
@@ -41,8 +57,9 @@ def make_vue_data(raw: dict) -> dict:
       - disclaimer         markdown  Legal disclaimer / liability statement.
       - appendix           markdown  Optional appendix content; section hidden when empty.
 
-    Whitespace-only extra_field strings are normalised to None so templates can
-    use a simple truthiness check to conditionally render optional sections.
+    Blank extra_field strings (whitespace-only or HTML with no visible text) are
+    normalised to None so templates can use a simple truthiness check to
+    conditionally render optional sections.
     """
     findings = []
     for f in raw.get("findings") or []:
@@ -61,7 +78,7 @@ def make_vue_data(raw: dict) -> dict:
     report["findings"] = findings
     if isinstance(report.get("extra_fields"), dict):
         report["extra_fields"] = {
-            k: (None if isinstance(v, str) and not v.strip() else v)
+            k: (None if isinstance(v, str) and _is_blank(v) else v)
             for k, v in report["extra_fields"].items()
         }
 
