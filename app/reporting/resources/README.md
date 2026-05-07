@@ -57,17 +57,28 @@ report.report_date
 report.complete              # bool — false triggers watermark logic
 
 report.client.name
+report.client.short_name
 report.client.address
+
 report.company.name
+report.company.short_name
 report.company.address
+report.company.email
+report.company.twitter
 
 report.project.start_date
 report.project.end_date
+report.project.codename
+report.project.type
 
-report.team                  # array of { name, email, phone, role }
+report.team                  # array of { name, email, phone, role, start_date, end_date, timezone, description }
 report.recipient.name
+report.recipient.job_title
+report.recipient.email
+report.recipient.phone
 
-report.scope                 # array of { name, scope[], disallowed }
+report.scope                 # array of { name, scope[], total, description, disallowed, requires_caution }
+report.whitecards            # array of { title, description } — provided accounts / whitelisted items
 
 report.extra_fields.about_us           # markdown — company/team intro
 report.extra_fields.executive_summary  # markdown — high-level summary for management
@@ -77,11 +88,14 @@ report.extra_fields.scope_text         # markdown — prose addendum to the scop
 report.extra_fields.disclaimer         # markdown — legal disclaimer / liability statement
 report.extra_fields.appendix           # markdown — optional appendix (hidden when empty)
 
+report.totals.findings        # total finding count
 report.totals.findings_critical
 report.totals.findings_high
 report.totals.findings_medium
 report.totals.findings_low
 report.totals.findings_info
+report.totals.team
+report.totals.scope
 ```
 
 ### Finding Fields
@@ -97,23 +111,28 @@ Each finding has:
 ```
 finding.id
 finding.title
-finding.severity          # "critical" | "high" | "medium" | "low" | "informational"
+finding.severity              # Title Case: "Critical" | "High" | "Medium" | "Low" | "Informational"
+finding.severity_color_hex    # e.g. "#FF2600" — Ghostwriter's configured severity colour
 finding.description
 finding.impact
 finding.recommendation
+finding.mitigation
 finding.replication_steps
 finding.affected_entities
 finding.references
+finding.finding_type
+finding.assigned_to
 finding.cvss_score
 finding.cvss_vector
+finding.tags                  # string[] e.g. ["phishing", "CWE:89", "ATT&CK:T1190"]
 
 # Augmented by Ghostbadger:
-finding.cvss.level         # "critical" | "high" | "medium" | "low" | "info"
-finding.cvss.level_number  # 1–5
-finding.cvss.score         # float
-finding.cvss.vector        # string
+finding.cvss.level            # "critical" | "high" | "medium" | "low" | "info"
+finding.cvss.level_number     # 1–5
+finding.cvss.score            # float
+finding.cvss.vector           # string
 
-finding.evidence           # array of { path, friendly_name, caption, description }
+finding.evidence              # array of { path, friendly_name, caption, description }
 ```
 
 ### Evidence Images
@@ -151,6 +170,15 @@ Generates a TOC from all headings with `class="in-toc"`:
 </table-of-contents>
 ```
 
+Each `item` exposes `id`, `level`, `title`, and `attrs` (all HTML attributes of the source element). Use `data-*` attributes on headings to pass metadata into TOC entries:
+```html
+<!-- on the heading -->
+<h2 :id="'f' + finding.id" class="in-toc" :data-tags="(finding.tags || []).join(',')">
+
+<!-- in the TOC -->
+<li :class="{'highlight': item.attrs['data-tags']?.includes('phishing')}">
+```
+
 ### `<ref>`
 Cross-reference to another element by id. Renders as heading text or page number depending on context:
 ```html
@@ -171,15 +199,40 @@ Joins named slots with commas and "and":
 </comma-and-join>
 ```
 
+### `<list-of-figures>`
+Generates a list of all `<figure>` elements with `<figcaption>`:
+```html
+<list-of-figures id="lof" v-slot="items">
+  <div v-if="items.length > 0">
+    <h2 class="in-toc numbered">Figure List</h2>
+    <ul>
+      <li v-for="item in items"><ref :to="item.id" /></li>
+    </ul>
+  </div>
+</list-of-figures>
+```
+Figures must be wrapped in `<figure>/<figcaption>` to appear in this list.
+
+### `<chart>`
+Renders a Chart.js chart:
+```html
+<chart :width="15" :height="10" :config="{
+  type: 'bar',
+  data: { labels: [...], datasets: [{ data: [...], backgroundColor: [...] }] },
+  options: { plugins: { legend: { display: false } } }
+}" />
+```
+Use `cssvar('--color-risk-critical')` to reference CSS variables inside chart config.
+
 ---
 
 ## Page Layout (CSS)
 
-Headers and footers use CSS `position: running()` — elements placed in running positions appear on every page.
+Headers and footers use CSS `position: running()` — elements placed in running positions appear on every page. Use `data-sysreptor-generated="page-header"` / `"page-footer"` and `data-sysreptor-rendersections="always"` so they render on every page including the cover.
 
 ```html
-<div id="header-right" data-sysreptor-generated="page-header">
-  <img src="mytemplate/logo.png" />
+<div data-sysreptor-generated="page-header" data-sysreptor-rendersections="always">
+  <div id="header-right"><img src="mytemplate/logo.png" /></div>
 </div>
 ```
 
@@ -211,14 +264,25 @@ Add `class="in-toc numbered"` to any heading to include it in the TOC and auto-n
 
 ## Risk Color Classes
 
-These CSS classes are defined in the base stylesheet:
+Define these in your template CSS to enable dynamic severity styling. The `finding.cvss.level` value (`critical`, `high`, `medium`, `low`, `info`) can be used to apply them dynamically:
 
-| Class | Use |
-|---|---|
-| `.risk-critical/high/medium/low/info` | Colored text, bold |
-| `.risk-bg-critical/high/medium/low/info` | Colored background |
+```html
+<td :class="'risk-bg-' + finding.cvss.level">{{ finding.cvss.score }}</td>
+```
 
-Use dynamically with `:class="'risk-bg-' + finding.cvss.level"`.
+```css
+.risk-critical { color: #FF2600; font-weight: bold; }
+.risk-high     { color: #FF9300; font-weight: bold; }
+.risk-medium   { color: #FFDA00; font-weight: bold; }
+.risk-low      { color: #0096FF; font-weight: bold; }
+.risk-info     { color: #00AE51; font-weight: bold; }
+
+.risk-bg-critical { background-color: #FF2600; color: white; }
+.risk-bg-high     { background-color: #FF9300; }
+.risk-bg-medium   { background-color: #FFDA00; }
+.risk-bg-low      { background-color: #0096FF; }
+.risk-bg-info     { background-color: #00AE51; }
+```
 
 ---
 
@@ -232,9 +296,21 @@ Static files (logos, backgrounds) go in `assets/<templatename>/` and are referen
 
 ---
 
+## Template Utilities
+
+These are available globally in all template expressions:
+
+| Utility | Example |
+|---|---|
+| `lodash` | `lodash.capitalize(finding.cvss.level)` |
+| `cssvar(name)` | `cssvar('--color-risk-critical')` — reads a CSS variable (use inside chart configs) |
+| `formatDate(date, style?, locale?)` | `formatDate(report.report_date, 'long')` |
+
+---
+
 ## Tips
 
 - No restart needed after editing — templates are read from disk on every render
 - Guard optional fields with `v-if="field"` to avoid blank sections — whitespace-only strings are normalised to `null` by the pipeline before reaching the template
-- `lodash` is available globally (e.g. `lodash.capitalize(finding.cvss.level)`)
+- Use `finding.tags` (string array) to conditionally style findings — e.g. badges, TOC highlights
 - The `testing` template is the most complete reference — start by copying it
