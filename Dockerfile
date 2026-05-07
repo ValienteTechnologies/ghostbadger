@@ -48,6 +48,15 @@ COPY wsgi.py entrypoint.sh .
 COPY --from=js-builder /build/packages/rendering/dist/ /packages/rendering/dist/
 COPY --from=js-builder /build/packages/bitwarden/node_modules/ /packages/bitwarden/node_modules/
 
+# bw CLI v2024+ refuses HTTP URLs (InsecureUrlNotAllowedError). Internal Docker
+# traffic to Vaultwarden uses http://, so patch out the single throw.
+RUN node -e " \
+  const fs = require('fs'); \
+  const p = '/packages/bitwarden/node_modules/@bitwarden/cli/build/bw.js'; \
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8') \
+    .replace('throw new InsecureUrlNotAllowedError();', '/* http allowed for internal docker */')); \
+"
+
 # Save defaults so entrypoint can seed bind-mounted directories on first run
 RUN mkdir -p /app/defaults && cp -r /app/reporting/resources /app/defaults/reporting_resources
 
