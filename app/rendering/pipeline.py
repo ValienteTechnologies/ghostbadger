@@ -31,6 +31,18 @@ def make_vue_data(raw: dict) -> dict:
     - finding_groups→ [{"findings": <augmented list>}] for templates that loop
                        over finding_groups[0].findings.
     - pentesters    → raw team list (alias kept for bundle compatibility).
+
+    report.extra_fields (Ghostwriter custom report fields):
+      - about_us           markdown  Company/team introduction paragraph.
+      - executive_summary  markdown  High-level summary of findings for management.
+      - attack_chain       markdown  Optional narrative describing the attack chain.
+      - methodology        markdown  Testing methodology and approach description.
+      - scope_text         markdown  Prose addendum to the structured scope list.
+      - disclaimer         markdown  Legal disclaimer / liability statement.
+      - appendix           markdown  Optional appendix content; section hidden when empty.
+
+    Whitespace-only extra_field strings are normalised to None so templates can
+    use a simple truthiness check to conditionally render optional sections.
     """
     findings = []
     for f in raw.get("findings") or []:

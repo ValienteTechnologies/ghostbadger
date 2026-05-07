@@ -69,14 +69,13 @@ report.recipient.name
 
 report.scope                 # array of { name, scope[], disallowed }
 
-report.extra_fields.about_us
-report.extra_fields.executive_summary
-report.extra_fields.attack_chain
-report.extra_fields.methodology
-report.extra_fields.scope_text
-report.extra_fields.provided_users
-report.extra_fields.disclaimer
-report.extra_fields.appendix_sections  # array of { title, content }
+report.extra_fields.about_us           # markdown — company/team intro
+report.extra_fields.executive_summary  # markdown — high-level summary for management
+report.extra_fields.attack_chain       # markdown — optional attack chain narrative
+report.extra_fields.methodology        # markdown — testing methodology and approach
+report.extra_fields.scope_text         # markdown — prose addendum to the scope list
+report.extra_fields.disclaimer         # markdown — legal disclaimer / liability statement
+report.extra_fields.appendix           # markdown — optional appendix (hidden when empty)
 
 report.totals.findings_critical
 report.totals.findings_high
@@ -236,6 +235,6 @@ Static files (logos, backgrounds) go in `assets/<templatename>/` and are referen
 ## Tips
 
 - No restart needed after editing — templates are read from disk on every render
-- Guard optional fields with `v-if="field && field.trim()"` to avoid blank sections
+- Guard optional fields with `v-if="field"` to avoid blank sections — whitespace-only strings are normalised to `null` by the pipeline before reaching the template
 - `lodash` is available globally (e.g. `lodash.capitalize(finding.cvss.level)`)
 - The `testing` template is the most complete reference — start by copying it
