@@ -505,6 +505,38 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   font-family: var(--font-mono);
 }
 
+/* ── Report selector (multi-report dropdown) ────────────────── */
+.report-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: .3125rem 1.5rem .3125rem .5rem;
+  font-family: var(--font-sans);
+  font-size: .8125rem;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a590c2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .5rem center;
+  transition: border-color var(--transition-focus), box-shadow var(--transition-focus);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-focus);
+}
+.report-select option {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
 /* ── Report row inside card ─────────────────────────────────── */
 .project-card__report {
   margin-top: .25rem;

@@ -46,7 +46,6 @@
 
       <div class="project-grid">
         {% for project in projects %}
-          {% set report = project.reports[0] if project.reports else none %}
           <div class="project-card">
 
             <div class="project-card__meta">
@@ -63,18 +62,33 @@
               {{ project.startDate or "—" }} → {{ project.endDate or "—" }}
             </div>
 
-            {% if report %}
+            {% if project.reports %}
+              {% set first = project.reports[0] %}
               <div class="project-card__report">
                 <div class="project-card__report-meta">
-                  <span class="project-card__report-title" title="{{ report.title }}">{{ report.title }}</span>
-                  <span class="report-status {% if report.complete %}report-status--complete{% else %}report-status--draft{% endif %}">
-                    {{ "Complete" if report.complete else "Draft" }}
+                  {% if project.reports|length > 1 %}
+                  <select class="report-select">
+                    {% for report in project.reports %}
+                    <option
+                      value="{{ report.id }}"
+                      data-title="{{ report.title }}"
+                      data-complete="{{ 'true' if report.complete else 'false' }}"
+                    >{{ report.title }}</option>
+                    {% endfor %}
+                  </select>
+                  {% else %}
+                  <span class="project-card__report-title" title="{{ first.title }}">{{ first.title }}</span>
+                  {% endif %}
+                  <span class="report-status {% if first.complete %}report-status--complete{% else %}report-status--draft{% endif %}">
+                    {{ "Complete" if first.complete else "Draft" }}
                   </span>
                 </div>
                 <button
                   class="btn btn--primary btn--sm view-btn"
-                  data-report-id="{{ report.id }}"
-                  data-report-title="{{ report.title }}"
+                  {% if project.reports|length == 1 %}
+                  data-report-id="{{ first.id }}"
+                  data-report-title="{{ first.title }}"
+                  {% endif %}
                 >View PDF</button>
               </div>
             {% else %}

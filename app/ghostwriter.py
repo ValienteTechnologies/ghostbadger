@@ -32,7 +32,7 @@ query RecentProjects($limit: Int!) {
     startDate
     endDate
     client { name shortName }
-    reports(order_by: {last_update: desc}, limit: 1) {
+    reports(order_by: {last_update: desc}) {
       id
       title
       complete

@@ -159,12 +159,35 @@
   document.addEventListener("click", (e) => {
     const btn = e.target.closest(".view-btn");
     if (!btn) return;
-    _activeReportId    = btn.dataset.reportId;
-    _activeReportTitle = btn.dataset.reportTitle || "";
+
+    const card   = btn.closest(".project-card");
+    const select = card && card.querySelector(".report-select");
+    if (select) {
+      const opt = select.options[select.selectedIndex];
+      _activeReportId    = opt.value;
+      _activeReportTitle = opt.dataset.title || "";
+    } else {
+      _activeReportId    = btn.dataset.reportId;
+      _activeReportTitle = btn.dataset.reportTitle || "";
+    }
+
     if (_activeReportTitle) {
       exportFilename.value = slugify(_activeReportTitle);
     }
     startPdfRender();
+  });
+
+  // ── Sync status badge when report selection changes ────────────
+  document.addEventListener("change", (e) => {
+    const select = e.target.closest(".report-select");
+    if (!select) return;
+    const opt      = select.options[select.selectedIndex];
+    const complete = opt.dataset.complete === "true";
+    const badge    = select.closest(".project-card__report-meta").querySelector(".report-status");
+    if (badge) {
+      badge.textContent = complete ? "Complete" : "Draft";
+      badge.className   = "report-status " + (complete ? "report-status--complete" : "report-status--draft");
+    }
   });
 
   // ── PDF panel: open + reset ────────────────────────────────────
