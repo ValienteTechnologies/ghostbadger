@@ -55,7 +55,10 @@ def index():
     except GhostwriterError as exc:
         error = str(exc)
     templates = get_available_templates()
-    selected = session.get("selected_template") or (templates[0].name if templates else None)
+    selected = session.get("selected_template")
+    if not selected and templates:
+        selected = templates[0].name
+        session["selected_template"] = selected
     vw_url = current_app.config.get("VAULTWARDEN_URL", "").rstrip("/")
     return render_template(
         "dashboard/index.html",
