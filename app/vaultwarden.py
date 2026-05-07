@@ -104,19 +104,18 @@ class VaultwardenClient:
         """
         _BW_APPDATA.mkdir(parents=True, exist_ok=True)
 
-        # 1. Configure server + pin API/identity to the internal URL so bw
-        #    doesn't follow the public domain returned by /api/config (which
-        #    would hit Cloudflare Zero Trust and return HTML instead of JSON).
-        internal = self._server_url.rstrip("/")
-        self._run_bw(
-            "config", "server",
-            "--api", f"{internal}/api",
-            "--identity", f"{internal}/identity",
-            self._server_url,
-        )
-
-        # 2. Log in via API key if not already authenticated
+        # bw config server fails with "Logout required" if an account is already
+        # active, so only configure + login when starting from a clean state.
         if self._bw_status() == "unauthenticated":
+            # Pin API/identity to the internal Docker URL so bw doesn't follow
+            # the public Cloudflare-protected URLs returned by /api/config.
+            internal = self._server_url.rstrip("/")
+            self._run_bw(
+                "config", "server",
+                "--api", f"{internal}/api",
+                "--identity", f"{internal}/identity",
+                self._server_url,
+            )
             self._run_bw(
                 "login", "--apikey",
                 env_extra={
@@ -125,7 +124,7 @@ class VaultwardenClient:
                 },
             )
 
-        # 3. Unlock — --raw returns just the session key
+        # Unlock — --raw returns just the session key
         session_key = self._run_bw(
             "unlock", "--passwordenv", "BW_PASSWORD", "--raw",
             env_extra={"BW_PASSWORD": self._master_password},
