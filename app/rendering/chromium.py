@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from urllib.parse import unquote
 
 from playwright.async_api import async_playwright
 
@@ -32,7 +33,7 @@ async def _render(
         # Intercept every request: serve from resources dict, block everything else
         async def handle_route(route):
             url  = route.request.url
-            path = url.removeprefix(RENDER_ORIGIN).lstrip("/")
+            path = unquote(url.removeprefix(RENDER_ORIGIN).lstrip("/"))
             if path in resources:
                 await route.fulfill(body=resources[path], status=200)
             else:

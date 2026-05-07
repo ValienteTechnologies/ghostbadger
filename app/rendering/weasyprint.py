@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from urllib.parse import unquote
 
 from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
@@ -36,7 +37,7 @@ _TRANSPARENT_1PX_PNG = (
 def _make_fetcher(resources: dict[str, bytes]):
     def fetcher(url: str) -> dict:
         if url.startswith(_ORIGIN_PREFIX):
-            path = url[len(_ORIGIN_PREFIX):]
+            path = unquote(url[len(_ORIGIN_PREFIX):])
             if path in resources:
                 ext  = Path(path).suffix.lower().lstrip(".")
                 mime = _MIME.get(ext, "application/octet-stream")
