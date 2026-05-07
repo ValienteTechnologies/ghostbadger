@@ -108,9 +108,12 @@ class VaultwardenClient:
         #    doesn't follow the public domain returned by /api/config (which
         #    would hit Cloudflare Zero Trust and return HTML instead of JSON).
         internal = self._server_url.rstrip("/")
-        self._run_bw("config", "server", self._server_url)
-        self._run_bw("config", "apiurl", f"{internal}/api")
-        self._run_bw("config", "identityurl", f"{internal}/identity")
+        self._run_bw(
+            "config", "server",
+            "--api", f"{internal}/api",
+            "--identity", f"{internal}/identity",
+            self._server_url,
+        )
 
         # 2. Log in via API key if not already authenticated
         if self._bw_status() == "unauthenticated":
@@ -143,10 +146,6 @@ class VaultwardenClient:
 
     def status(self) -> dict:
         """Return the bw status dict (keys: serverUrl, status, userEmail, …)."""
-        internal = self._server_url.rstrip("/")
-        self._run_bw("config", "server", self._server_url)
-        self._run_bw("config", "apiurl", f"{internal}/api")
-        self._run_bw("config", "identityurl", f"{internal}/identity")
         try:
             return json.loads(self._run_bw("status", "--raw"))
         except (VaultwardenError, json.JSONDecodeError) as exc:
