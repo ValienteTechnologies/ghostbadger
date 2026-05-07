@@ -28,8 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libharfbuzz0b \
     fonts-liberation \
     fonts-dejavu-core \
-    nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# bw CLI WASM crypto requires Node.js 22+; apt nodejs on bookworm is 18.x
+COPY --from=js-builder /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
 
