@@ -47,6 +47,11 @@ def make_vue_data(raw: dict) -> dict:
 
     report = dict(raw)
     report["findings"] = findings
+    if isinstance(report.get("extra_fields"), dict):
+        report["extra_fields"] = {
+            k: (None if isinstance(v, str) and not v.strip() else v)
+            for k, v in report["extra_fields"].items()
+        }
 
     return {
         "report":        report,
