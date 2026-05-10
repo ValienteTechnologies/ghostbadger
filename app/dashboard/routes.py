@@ -197,12 +197,17 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str,
         job["done"]     = True
         emit("done", {"success": True, "elapsed": elapsed, "pdf_hash": job["pdf_hash"]})
 
-    except Exception as exc:
+    except BaseException as exc:
         elapsed = round(time.monotonic() - t0, 1)
         job["error"] = str(exc)
         job["done"]  = True
-        emit("render_error", {"message": str(exc)})
-        emit("done", {"success": False, "elapsed": elapsed})
+        try:
+            emit("render_error", {"message": str(exc)})
+            emit("done", {"success": False, "elapsed": elapsed})
+        except Exception:
+            pass
+        if not isinstance(exc, Exception):
+            raise
 
 
 @bp.route("/api/render/<job_id>/stream")
@@ -216,7 +221,7 @@ def render_stream(job_id: str):
         q = job["q"]
         while True:
             try:
-                event, data = q.get(timeout=90)
+                event, data = q.get(timeout=15)
             except queue.Empty:
                 yield ": heartbeat\n\n"
                 continue
