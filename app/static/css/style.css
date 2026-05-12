@@ -118,10 +118,9 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 }
 
 .onboarding__logo {
-  width: 40px;
-  height: 40px;
-  color: var(--color-accent);
-  margin-bottom: 1rem;
+  width: 200px;
+  height: 200px;
+  margin-bottom: 0;
 }
 
 .onboarding__title {
