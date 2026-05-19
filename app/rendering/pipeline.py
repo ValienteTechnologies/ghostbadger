@@ -26,9 +26,11 @@ _GW_RICHTEXT_RE = re.compile(
     r'<div\b[^>]*\bdata-evidence-id="(\d+)"[^>]*\bclass="richtext-evidence"[^>]*>\s*</div>'
 )
 
-# Finding text fields that can contain inline evidence references (mirrors Ghostwriter's allowlist)
+# Rich-text finding fields that Ghostwriter allows inline evidence in.
+# "title" is intentionally excluded — it is plain text, never richtext.
+# report.extra_fields are also excluded; Ghostwriter does not support inline
+# evidence there, so we leave those fields untouched.
 _FINDING_TEXT_FIELDS = (
-    "title",
     "affected_entities",
     "description",
     "impact",
