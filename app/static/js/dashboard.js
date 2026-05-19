@@ -245,48 +245,6 @@
     statusbarMsgs.scrollTop = statusbarMsgs.scrollHeight;
   }
 
-  // ── SSE fallback: poll PDF endpoint until render completes ─────
-  async function _pollForPdf(jobId) {
-    const deadline = Date.now() + 120_000;
-    while (Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 3000));
-      if (_renderDone || pdfProgress.hidden) return;
-      try {
-        const r = await fetch(`${_apiBase}/api/render/${jobId}/pdf`);
-        if (r.ok) {
-          if (_renderDone || pdfProgress.hidden) return;
-          _renderDone = true;
-          stopTimer();
-          const elapsed = ((Date.now() - _renderT0) / 1000).toFixed(1);
-          pdfProgress.hidden   = true;
-          pdfStatusbar.hidden  = false;
-          statusbarStage.textContent   = "Done";
-          statusbarElapsed.textContent = `${elapsed}s`;
-          _currentPdfUrl   = URL.createObjectURL(await r.blob());
-          pdfIframe.src    = _currentPdfUrl;
-          pdfIframe.hidden = false;
-          pdfCloseBtn.hidden = false;
-          if (vwConfigured) {
-            exportSteps.hidden = false;
-            updateDownloadState();
-          } else {
-            pdfDownloadBtn.hidden = false;
-            updateDownloadState();
-          }
-          return;
-        }
-        if (r.status === 500) break;
-      } catch (_) {}
-    }
-    if (_renderDone || pdfProgress.hidden) return;
-    stopTimer();
-    pdfProgress.hidden   = true;
-    pdfStatusbar.hidden  = false;
-    pdfCloseBtn.hidden   = false;
-    statusbarStage.textContent = "Connection lost";
-    addStatusMsg("error", "SSE connection closed unexpectedly.");
-  }
-
   // ── Core async render ──────────────────────────────────────────
   async function startPdfRender() {
     openPdfPanel();
@@ -399,21 +357,45 @@
       }
     });
 
-    es.onerror = () => {
+    es.onerror = async () => {
       if (_renderDone) return;
-      if (es.readyState === EventSource.CLOSED) {
-        // Fatal: server returned a non-SSE response (e.g. session expired).
-        _handleSessionExpired();
-        return;
-      }
-      // CONNECTING: transient drop, browser would auto-reconnect but that races
-      // with our queue. Close it and poll the PDF endpoint instead — the background
-      // thread keeps running regardless and the PDF will appear when ready.
+      if (es.readyState !== EventSource.CLOSED) return;
+      // CLOSED means the server returned a non-SSE response (auth failure, crash,
+      // etc.). CONNECTING means a transient drop — the browser reconnects
+      // automatically with Last-Event-Id so we let it.
       es.close();
       _activeEs = null;
-      pdfStageLabel.textContent = "Waiting for render…";
-      addStatusMsg("warning", "SSE interrupted, waiting for render to complete…");
-      _pollForPdf(jobId);
+      try {
+        const r = await fetch(`${_apiBase}/api/render/${jobId}/pdf`);
+        if (r.status === 401) { _handleSessionExpired(); return; }
+        if (r.ok) {
+          _renderDone = true;
+          stopTimer();
+          const elapsed = ((Date.now() - _renderT0) / 1000).toFixed(1);
+          pdfProgress.hidden   = true;
+          pdfStatusbar.hidden  = false;
+          statusbarStage.textContent   = "Done";
+          statusbarElapsed.textContent = `${elapsed}s`;
+          _currentPdfUrl   = URL.createObjectURL(await r.blob());
+          pdfIframe.src    = _currentPdfUrl;
+          pdfIframe.hidden = false;
+          pdfCloseBtn.hidden = false;
+          if (vwConfigured) {
+            exportSteps.hidden = false;
+            updateDownloadState();
+          } else {
+            pdfDownloadBtn.hidden = false;
+            updateDownloadState();
+          }
+          return;
+        }
+      } catch (_) {}
+      stopTimer();
+      pdfProgress.hidden  = true;
+      pdfStatusbar.hidden = false;
+      pdfCloseBtn.hidden  = false;
+      statusbarStage.textContent = "Connection lost";
+      addStatusMsg("error", "Connection to render server lost.");
     };
   }
 
