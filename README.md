@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/static/ghostbadger.png" width="250" />
+  <img width="250" height="250" alt="ghostbadger" src="https://github.com/user-attachments/assets/f599302a-0a89-4eab-af34-92a8ad863361" />
 </p>
 
 **Ghostbadger** is a specialized PDF rendering engine designed to bridge the gap between [Ghostwriter](https://github.com/GhostManager/Ghostwriter) and secure client delivery. It automates the generation of polished, password-protected PDF reports by integrating directly with Ghostwriter's GraphQL API and [Vaultwarden](https://github.com/dani-garcia/vaultwarden).
