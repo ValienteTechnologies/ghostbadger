@@ -18,23 +18,32 @@ def local_path(evidence_path: str) -> Path:
     return _EVIDENCE_DIR / Path(evidence_path).relative_to("evidence")
 
 
+def collect_evidence(obj: object) -> list[dict]:
+    """Recursively find all evidence objects in the report JSON.
+
+    An evidence object is any dict with a 'path' starting with 'evidence/'
+    and an integer 'id'.
+    """
+    found: list[dict] = []
+    if isinstance(obj, dict):
+        p = obj.get("path")
+        eid = obj.get("id")
+        if isinstance(p, str) and p.startswith("evidence/") and isinstance(eid, int):
+            found.append(obj)
+        for v in obj.values():
+            found.extend(collect_evidence(v))
+    elif isinstance(obj, list):
+        for item in obj:
+            found.extend(collect_evidence(item))
+    return found
+
+
 def collect_paths(obj: object) -> dict[str, int]:
     """Recursively find all evidence objects in the report JSON.
 
     Returns a mapping of path -> evidence_id, e.g. {"evidence/2/foo.png": 3}.
     """
-    paths: dict[str, int] = {}
-    if isinstance(obj, dict):
-        p = obj.get("path")
-        eid = obj.get("id")
-        if isinstance(p, str) and p.startswith("evidence/") and isinstance(eid, int):
-            paths[p] = eid
-        for v in obj.values():
-            paths |= collect_paths(v)
-    elif isinstance(obj, list):
-        for item in obj:
-            paths |= collect_paths(item)
-    return paths
+    return {ev["path"]: ev["id"] for ev in collect_evidence(obj)}
 
 
 def _fetch_and_save(client: GhostwriterClient, evidence_id: int, path: str, media_path: Path | None) -> tuple[str, bool]:
