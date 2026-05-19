@@ -115,7 +115,7 @@ def _resolve_inline_evidence(text: str, ev_index: dict[str, dict]) -> str:
         ev = ev_index.get(name)
         if ev and ev.get("path"):
             caption = html.escape(ev.get("caption") or ev.get("friendly_name") or name)
-            path = ev["path"]
+            path = html.escape(ev["path"])
             return (
                 f'<figure>'
                 f'<img src="{path}" alt="{caption}" style="max-width:100%">'
@@ -142,7 +142,7 @@ def _resolve_richtext_evidence(text: str, ev_by_id: dict[int, dict]) -> str:
         ev = ev_by_id.get(int(eid_str))
         if ev and ev.get("path"):
             caption = html.escape(ev.get("caption") or ev.get("friendly_name") or eid_str)
-            path = ev["path"]
+            path = html.escape(ev["path"])
             return (
                 f'<figure>'
                 f'<img src="{path}" alt="{caption}" style="max-width:100%">'
