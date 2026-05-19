@@ -5,10 +5,11 @@
 
 {% block content %}
 <div class="onboarding">
-  <div class="onboarding__card">
+  <div class="onboarding__card" data-initial-mode="{{ mode }}">
 
     <div class="onboarding__header">
       <img class="onboarding__logo" src="{{ url_for('static', filename='ghostbadger_logo.png') }}" alt="Ghostbadger">
+      <p class="onboarding__title">Ghostbadger</p>
       <p class="onboarding__subtitle" id="form-subtitle">Sign in with your Ghostwriter credentials.</p>
     </div>
 
@@ -95,33 +96,5 @@
   </div>
 </div>
 
-<script>
-  (function () {
-    var formPw    = document.getElementById('form-password');
-    var formTok   = document.getElementById('form-token');
-    var link      = document.getElementById('toggle-link');
-    var subtitle  = document.getElementById('form-subtitle');
-    var showToken = {{ 'true' if mode == 'token' else 'false' }};
-
-    function update() {
-      if (showToken) {
-        formPw.classList.add('onboarding__form--hidden');
-        formTok.classList.remove('onboarding__form--hidden');
-        subtitle.textContent = 'Enter your Ghostwriter API token to get started.';
-        link.textContent = 'Sign in with username & password instead';
-      } else {
-        formTok.classList.add('onboarding__form--hidden');
-        formPw.classList.remove('onboarding__form--hidden');
-        subtitle.textContent = 'Sign in with your Ghostwriter credentials.';
-        link.textContent = 'Paste a JWT token instead';
-      }
-    }
-
-    link.addEventListener('click', function (e) {
-      e.preventDefault();
-      showToken = !showToken;
-      update();
-    });
-  })();
-</script>
+<script src="{{ url_for('static', filename='js/onboarding.js') }}"></script>
 {% endblock %}

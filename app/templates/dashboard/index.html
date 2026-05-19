@@ -5,8 +5,17 @@
 {% block content %}
 <div class="dashboard">
 
+  <header class="mobile-bar">
+    <button class="drawer-toggle" id="drawer-toggle" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <span class="mobile-bar__title">Ghostbadger</span>
+  </header>
+
   <nav class="drawer">
+    <button class="drawer__close" id="drawer-close" aria-label="Close menu">&times;</button>
     <img src="{{ url_for('static', filename='ghostbadger_logo.png') }}" alt="Ghostbadger" class="drawer__logo">
+    <p class="drawer__title">Ghostbadger</p>
     <div class="drawer__nav">
       {% if templates %}
         <p class="drawer__nav-label">Template</p>
@@ -28,6 +37,8 @@
       <a class="btn btn--ghost btn--sm btn--full" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
     </div>
   </nav>
+
+  <div class="drawer-overlay" id="drawer-overlay"></div>
 
   <div class="dashboard__left">
 

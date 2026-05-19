@@ -118,15 +118,17 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 }
 
 .onboarding__logo {
-  width: 200px;
-  height: 200px;
+  width: 120px;
+  height: 120px;
   margin-bottom: 0;
 }
 
 .onboarding__title {
   font-size: 1.25rem;
   font-weight: 700;
+  font-style: italic;
   letter-spacing: -.02em;
+  color: #55b576;
   margin-bottom: .25rem;
 }
 
@@ -315,11 +317,20 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 
 .drawer__logo {
   width: 100%;
-  max-width: 140px;
+  max-width: 80px;
   height: auto;
   display: block;
-  margin: 0 auto 1.25rem;
+  margin: 0 auto 0;
   transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+
+.drawer__title {
+  font-size: .875rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #55b576;
+  text-align: center;
+  margin: .375rem 0 1.25rem;
 }
 
 .drawer__logo:hover {
@@ -444,7 +455,7 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 /* ── Project Grid ───────────────────────────────────────────── */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .75rem;
 }
 
@@ -943,3 +954,140 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 }
 
 .send-link-input { flex: 1; }
+
+/* ── Mobile chrome (hidden on desktop) ──────────────────────── */
+.mobile-bar     { display: none; }
+.drawer__close  { display: none; }
+.drawer-overlay { display: none; }
+
+/* ── Mobile (≤ 768px) ────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Onboarding: tighter card padding */
+  .onboarding__card { padding: 1.75rem 1.25rem; }
+
+  /* Stack the three-column dashboard into a single column */
+  .dashboard {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  /* ── Sticky top bar ──────────────────────────────────────── */
+  .mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    background: var(--color-surface-2);
+    border-bottom: 2px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .mobile-bar__title {
+    font-size: .875rem;
+    font-weight: 700;
+    font-style: italic;
+    color: #55b576;
+  }
+
+  /* ── Hamburger button ────────────────────────────────────── */
+  .drawer-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    flex-shrink: 0;
+  }
+  .drawer-toggle span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--color-text);
+    border-radius: 2px;
+    transition: transform .2s ease, opacity .2s ease;
+  }
+
+  /* ── Off-canvas drawer ───────────────────────────────────── */
+  .drawer {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 240px;
+    height: 100vh;
+    z-index: 160;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    border-right: 1px solid var(--color-border-2);
+  }
+  .drawer--open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,.55);
+  }
+
+  /* Close (×) button inside the drawer */
+  .drawer__close {
+    display: block;
+    position: absolute;
+    top: .75rem;
+    right: .75rem;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--color-muted);
+    cursor: pointer;
+    padding: 0 .25rem;
+    transition: color var(--transition-fast);
+  }
+  .drawer__close:hover { color: var(--color-text); }
+
+  /* ── Backdrop overlay ────────────────────────────────────── */
+  .drawer-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: var(--backdrop-bg);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+  }
+  .drawer-overlay--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ── Left panel: natural block height ───────────────────── */
+  .dashboard__left     { display: block; overflow: visible; }
+  .dashboard__projects { overflow: visible; border-right: none; }
+  .dashboard__passwords { border-right: none; }
+
+  /* ── Single-column project cards ────────────────────────── */
+  .project-grid { grid-template-columns: 1fr; }
+
+  /* ── PDF panel: full width, clearly separated ───────────── */
+  .pdf-panel {
+    border-left: none;
+    border-top: 2px solid var(--color-border);
+    background: var(--color-surface-2);
+    height: 70vh;
+  }
+
+  .pdf-panel__header {
+    padding: .875rem 1rem;
+    border-bottom-color: var(--color-border);
+  }
+
+  .pdf-panel__title {
+    color: var(--color-text);
+    font-size: .8125rem;
+  }
+}
