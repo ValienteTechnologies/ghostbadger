@@ -1073,10 +1073,21 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
   /* ── Single-column project cards ────────────────────────── */
   .project-grid { grid-template-columns: 1fr; }
 
-  /* ── PDF panel: full width ───────────────────────────────── */
+  /* ── PDF panel: full width, clearly separated ───────────── */
   .pdf-panel {
     border-left: none;
-    border-top: 1px solid var(--color-border-2);
+    border-top: 2px solid var(--color-border);
+    background: var(--color-surface-2);
     height: 70vh;
+  }
+
+  .pdf-panel__header {
+    padding: .875rem 1rem;
+    border-bottom-color: var(--color-border);
+  }
+
+  .pdf-panel__title {
+    color: var(--color-text);
+    font-size: .8125rem;
   }
 }
