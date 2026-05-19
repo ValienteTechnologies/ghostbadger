@@ -118,15 +118,17 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 }
 
 .onboarding__logo {
-  width: 200px;
-  height: 200px;
+  width: 120px;
+  height: 120px;
   margin-bottom: 0;
 }
 
 .onboarding__title {
   font-size: 1.25rem;
   font-weight: 700;
+  font-style: italic;
   letter-spacing: -.02em;
+  color: #55b576;
   margin-bottom: .25rem;
 }
 
@@ -315,11 +317,20 @@ a:hover { color: var(--color-accent-hv); text-decoration: underline; }
 
 .drawer__logo {
   width: 100%;
-  max-width: 140px;
+  max-width: 80px;
   height: auto;
   display: block;
-  margin: 0 auto 1.25rem;
+  margin: 0 auto 0;
   transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+
+.drawer__title {
+  font-size: .875rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #55b576;
+  text-align: center;
+  margin: .375rem 0 1.25rem;
 }
 
 .drawer__logo:hover {
