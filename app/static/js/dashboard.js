@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  const _apiBase = (window.APP_ROOT || "") + "/dashboard";
+
   // ── Export refs ────────────────────────────────────────────────
   const exportFilename   = document.getElementById("export-filename");
   const exportOwnerPw    = document.getElementById("export-owner-pw");
@@ -44,6 +46,7 @@
   let _renderTimer      = null;
   let _renderT0         = null;
   let _expiryDays       = 14;
+  let _renderDone       = false;
 
   // ── Export helpers ─────────────────────────────────────────────
   function slugify(title) {
@@ -75,6 +78,11 @@
     updateDownloadState();
   });
 
+  // ── Session expiry ─────────────────────────────────────────────
+  function _handleSessionExpired() {
+    window.location.href = (window.APP_ROOT || "") + "/";
+  }
+
   // ── Utilities ──────────────────────────────────────────────────
   function showFlash(category, msg, ttl = 5000) {
     const el = document.createElement("div");
@@ -105,7 +113,7 @@
 
     if (pdfDownloadBtn) pdfDownloadBtn.classList.add("btn--disabled");
     try {
-      const resp = await fetch(`/dashboard/api/render/${_activeJobId}/pdf/download`, {
+      const resp = await fetch(`${_apiBase}/api/render/${_activeJobId}/pdf/download`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -241,13 +249,19 @@
   async function startPdfRender() {
     openPdfPanel();
     startTimer();
+    _renderDone = false;
 
     let jobId;
     try {
-      const resp = await fetch(`/dashboard/api/report/${_activeReportId}/view`, {
+      const resp = await fetch(`${_apiBase}/api/report/${_activeReportId}/view`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
+      if (resp.status === 401) {
+        stopTimer();
+        _handleSessionExpired();
+        return;
+      }
       const body = await resp.json();
       if (!resp.ok || body.error) {
         stopTimer();
@@ -270,7 +284,7 @@
       return;
     }
 
-    const es = new EventSource(`/dashboard/api/render/${jobId}/stream`);
+    const es = new EventSource(`${_apiBase}/api/render/${jobId}/stream`);
     _activeEs = es;
 
     es.addEventListener("stage", (e) => {
@@ -296,6 +310,7 @@
     });
 
     es.addEventListener("done", async (e) => {
+      _renderDone = true;
       es.close();
       _activeEs = null;
       stopTimer();
@@ -315,7 +330,8 @@
       statusbarElapsed.textContent = `${d.elapsed}s`;
 
       try {
-        const resp = await fetch(`/dashboard/api/render/${jobId}/pdf`);
+        const resp = await fetch(`${_apiBase}/api/render/${jobId}/pdf`);
+        if (resp.status === 401) { _handleSessionExpired(); return; }
         if (!resp.ok) {
           const body = await resp.json().catch(() => ({}));
           addStatusMsg("error", body.error || "Could not retrieve PDF.");
@@ -342,16 +358,45 @@
       }
     });
 
-    es.onerror = () => {
-      if (es.readyState === EventSource.CLOSED) return;
+    es.onerror = async () => {
+      if (_renderDone) return;
+      if (es.readyState !== EventSource.CLOSED) return;
+      // CLOSED means the server returned a non-SSE response (auth failure, crash,
+      // etc.). CONNECTING means a transient drop — the browser reconnects
+      // automatically with Last-Event-Id so we let it.
       es.close();
       _activeEs = null;
+      try {
+        const r = await fetch(`${_apiBase}/api/render/${jobId}/pdf`);
+        if (r.status === 401) { _handleSessionExpired(); return; }
+        if (r.ok) {
+          _renderDone = true;
+          stopTimer();
+          const elapsed = ((Date.now() - _renderT0) / 1000).toFixed(1);
+          pdfProgress.hidden   = true;
+          pdfStatusbar.hidden  = false;
+          statusbarStage.textContent   = "Done";
+          statusbarElapsed.textContent = `${elapsed}s`;
+          _currentPdfUrl   = URL.createObjectURL(await r.blob());
+          pdfIframe.src    = _currentPdfUrl;
+          pdfIframe.hidden = false;
+          pdfCloseBtn.hidden = false;
+          if (vwConfigured) {
+            exportSteps.hidden = false;
+            updateDownloadState();
+          } else {
+            pdfDownloadBtn.hidden = false;
+            updateDownloadState();
+          }
+          return;
+        }
+      } catch (_) {}
       stopTimer();
       pdfProgress.hidden  = true;
       pdfStatusbar.hidden = false;
       pdfCloseBtn.hidden  = false;
       statusbarStage.textContent = "Connection lost";
-      addStatusMsg("error", "SSE connection closed unexpectedly.");
+      addStatusMsg("error", "Connection to render server lost.");
     };
   }
 
@@ -360,7 +405,7 @@
     btn.addEventListener("click", async () => {
       const name = btn.dataset.template;
       try {
-        const resp = await fetch("/dashboard/api/template/select", {
+        const resp = await fetch(`${_apiBase}/api/template/select`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name }),
@@ -409,7 +454,7 @@
       vwModalSubmit.disabled    = true;
       vwModalSubmit.textContent = "Connecting…";
       try {
-        const resp = await fetch("/dashboard/api/vault/connect", {
+        const resp = await fetch(`${_apiBase}/api/vault/connect`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, master_password: masterPw }),
@@ -493,7 +538,7 @@
         `Owner: ${exportOwnerPw.value}`,
       ].join("\n");
       try {
-        const resp = await fetch("/dashboard/api/vault/credential", {
+        const resp = await fetch(`${_apiBase}/api/vault/credential`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -529,7 +574,7 @@
       const title = _activeReportTitle || exportFilename.value || `report-${_activeReportId}.pdf`;
       const text  = exportUserPw.value;
       try {
-        const resp = await fetch("/dashboard/api/vault/send", {
+        const resp = await fetch(`${_apiBase}/api/vault/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

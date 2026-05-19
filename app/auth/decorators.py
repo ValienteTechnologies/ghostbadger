@@ -4,7 +4,7 @@ import re
 import time
 from functools import wraps
 
-from flask import redirect, session, url_for
+from flask import jsonify, redirect, request, session, url_for
 
 
 _JWT_RE = re.compile(r"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$")
@@ -43,14 +43,20 @@ def validate_jwt_format(token: str) -> tuple[bool, str, int | None]:
 
 
 def require_token(f):
-    """Redirect to onboarding if no token in session or the JWT exp has passed."""
+    """Redirect to onboarding if no token in session or the JWT exp has passed.
+    API routes (paths containing /api/) receive a JSON 401 instead of a redirect."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not session.get("gw_token"):
-            return redirect(url_for("onboarding.index"))
-        exp = session.get("gw_token_exp")
-        if exp is not None and time.time() > exp:
-            clear_token()
+        missing = not session.get("gw_token")
+        if not missing:
+            exp = session.get("gw_token_exp")
+            if exp is not None and time.time() > exp:
+                clear_token()
+                missing = True
+
+        if missing:
+            if "/api/" in request.path:
+                return jsonify({"error": "session_expired"}), 401
             return redirect(url_for("onboarding.index"))
         return f(*args, **kwargs)
     return decorated

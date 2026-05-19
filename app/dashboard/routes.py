@@ -122,7 +122,7 @@ def view_report_pdf(report_id: int):
     _purge_old_jobs()
 
     job_id = str(uuid.uuid4())
-    _render_jobs[job_id] = {"q": queue.Queue(), "pdf": None, "error": None, "done": False, "created_at": time.monotonic()}
+    _render_jobs[job_id] = {"q": queue.Queue(), "events": [], "pdf": None, "error": None, "done": False, "created_at": time.monotonic()}
 
     threading.Thread(
         target=_run_view,
@@ -139,7 +139,9 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str,
     t0  = time.monotonic()
 
     def emit(event: str, data: dict) -> None:
-        q.put((event, data))
+        event_id = len(job["events"])
+        job["events"].append((event_id, event, data))
+        q.put(None)
 
     try:
         # ── Stage 1: Generate report JSON ─────────────────────────
@@ -197,12 +199,17 @@ def _run_view(job_id: str, report_id: int, template, gw_url: str, gw_token: str,
         job["done"]     = True
         emit("done", {"success": True, "elapsed": elapsed, "pdf_hash": job["pdf_hash"]})
 
-    except Exception as exc:
+    except BaseException as exc:
         elapsed = round(time.monotonic() - t0, 1)
         job["error"] = str(exc)
         job["done"]  = True
-        emit("render_error", {"message": str(exc)})
-        emit("done", {"success": False, "elapsed": elapsed})
+        try:
+            emit("render_error", {"message": str(exc)})
+            emit("done", {"success": False, "elapsed": elapsed})
+        except Exception:
+            pass
+        if not isinstance(exc, Exception):
+            raise
 
 
 @bp.route("/api/render/<job_id>/stream")
@@ -213,16 +220,32 @@ def render_stream(job_id: str):
         return jsonify({"error": "Unknown job"}), 404
 
     def generate():
-        q = job["q"]
-        while True:
+        last_id_str = request.headers.get("Last-Event-Id")
+        next_idx = 0
+        if last_id_str:
             try:
-                event, data = q.get(timeout=90)
+                next_idx = int(last_id_str) + 1
+            except ValueError:
+                pass
+
+        events = job["events"]
+        q = job["q"]
+
+        while True:
+            while next_idx < len(events):
+                eid, ename, edata = events[next_idx]
+                yield f"id: {eid}\nevent: {ename}\ndata: {_json.dumps(edata)}\n\n"
+                next_idx += 1
+                if ename == "done":
+                    return
+
+            if job["done"]:
+                return
+
+            try:
+                q.get(timeout=30)
             except queue.Empty:
                 yield ": heartbeat\n\n"
-                continue
-            yield f"event: {event}\ndata: {_json.dumps(data)}\n\n"
-            if event == "done":
-                break
 
     return Response(
         stream_with_context(generate()),
