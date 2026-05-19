@@ -622,3 +622,29 @@
   }
 
 })();
+
+// ── Mobile drawer toggle ────────────────────────────────────────
+(function () {
+  var drawer  = document.querySelector('.drawer');
+  var overlay = document.getElementById('drawer-overlay');
+  var toggle  = document.getElementById('drawer-toggle');
+  var close   = document.getElementById('drawer-close');
+
+  if (!toggle) return; // not on mobile / element missing
+
+  function openDrawer() {
+    drawer.classList.add('drawer--open');
+    overlay.classList.add('drawer-overlay--visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('drawer--open');
+    overlay.classList.remove('drawer-overlay--visible');
+    document.body.style.overflow = '';
+  }
+
+  toggle.addEventListener('click', openDrawer);
+  close.addEventListener('click', closeDrawer);
+  overlay.addEventListener('click', closeDrawer);
+}());
