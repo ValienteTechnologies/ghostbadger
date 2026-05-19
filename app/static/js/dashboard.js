@@ -331,6 +331,7 @@
 
       try {
         const resp = await fetch(`${_apiBase}/api/render/${jobId}/pdf`);
+        if (resp.status === 401) { _handleSessionExpired(); return; }
         if (!resp.ok) {
           const body = await resp.json().catch(() => ({}));
           addStatusMsg("error", body.error || "Could not retrieve PDF.");
