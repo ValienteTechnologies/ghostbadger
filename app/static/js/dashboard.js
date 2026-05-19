@@ -80,7 +80,7 @@
 
   // ── Session expiry ─────────────────────────────────────────────
   function _handleSessionExpired() {
-    window.location.reload();
+    window.location.href = (window.APP_ROOT || "") + "/";
   }
 
   // ── Utilities ──────────────────────────────────────────────────
