@@ -5,7 +5,15 @@
 {% block content %}
 <div class="dashboard">
 
+  <header class="mobile-bar">
+    <button class="drawer-toggle" id="drawer-toggle" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <span class="mobile-bar__title">Ghostbadger</span>
+  </header>
+
   <nav class="drawer">
+    <button class="drawer__close" id="drawer-close" aria-label="Close menu">&times;</button>
     <img src="{{ url_for('static', filename='ghostbadger_logo.png') }}" alt="Ghostbadger" class="drawer__logo">
     <p class="drawer__title">Ghostbadger</p>
     <div class="drawer__nav">
@@ -29,6 +37,8 @@
       <a class="btn btn--ghost btn--sm btn--full" href="{{ url_for('onboarding.logout') }}">Disconnect</a>
     </div>
   </nav>
+
+  <div class="drawer-overlay" id="drawer-overlay"></div>
 
   <div class="dashboard__left">
 
@@ -257,4 +267,28 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+(function () {
+  var drawer  = document.querySelector('.drawer');
+  var overlay = document.getElementById('drawer-overlay');
+  var toggle  = document.getElementById('drawer-toggle');
+  var close   = document.getElementById('drawer-close');
+
+  function openDrawer() {
+    drawer.classList.add('drawer--open');
+    overlay.classList.add('drawer-overlay--visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('drawer--open');
+    overlay.classList.remove('drawer-overlay--visible');
+    document.body.style.overflow = '';
+  }
+
+  toggle.addEventListener('click', openDrawer);
+  close.addEventListener('click', closeDrawer);
+  overlay.addEventListener('click', closeDrawer);
+}());
+</script>
 {% endblock %}
