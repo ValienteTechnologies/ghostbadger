@@ -7,6 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from ..reporting import ReportTemplate
+from ..reporting.evidence import collect_evidence
 from .chromium import render_to_html
 from .resources import build
 from .weasyprint import render_to_pdf
@@ -49,32 +50,17 @@ _SEVERITY: dict[str, tuple[int, str]] = {
 }
 
 def _build_evidence_index(report_json: dict) -> tuple[dict[str, dict], dict[int, dict]]:
-    """Walk the report JSON and return two evidence lookups:
+    """Build two evidence lookups from the report JSON:
       by_name: friendly_name → evidence object  (for {{.name}} tags)
       by_id:   numeric id    → evidence object  (for richtext-evidence divs)
     """
     by_name: dict[str, dict] = {}
     by_id:   dict[int, dict] = {}
-
-    def _walk(obj: object) -> None:
-        if isinstance(obj, dict):
-            p   = obj.get("path")
-            fn  = obj.get("friendly_name")
-            eid = obj.get("id")
-            if (
-                isinstance(p, str) and p.startswith("evidence/")
-                and isinstance(eid, int)
-                and isinstance(fn, str) and fn
-            ):
-                by_name[fn]  = obj
-                by_id[eid]   = obj
-            for v in obj.values():
-                _walk(v)
-        elif isinstance(obj, list):
-            for item in obj:
-                _walk(item)
-
-    _walk(report_json)
+    for ev in collect_evidence(report_json):
+        fn = ev.get("friendly_name")
+        if isinstance(fn, str) and fn:
+            by_name[fn] = ev
+        by_id[ev["id"]] = ev
     return by_name, by_id
 
 
