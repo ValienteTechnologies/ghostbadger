@@ -6,7 +6,10 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
+    # Rolling session lifetime for tokens with no known expiry (Ghostwriter
+    # reports "Never"); tokens with an expiry override this via the JWT-aware
+    # session interface.
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
 
     APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/")
 

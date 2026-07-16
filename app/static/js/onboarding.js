@@ -18,7 +18,7 @@
       formTok.classList.add('onboarding__form--hidden');
       formPw.classList.remove('onboarding__form--hidden');
       subtitle.textContent = 'Sign in with your Ghostwriter credentials.';
-      link.textContent = 'Paste a JWT token instead';
+      link.textContent = 'Paste an API token instead';
     }
   }
 

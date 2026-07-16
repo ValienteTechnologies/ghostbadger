@@ -1,5 +1,3 @@
-import base64
-import json
 import re
 import time
 from functools import wraps
@@ -7,43 +5,34 @@ from functools import wraps
 from flask import jsonify, redirect, request, session, url_for
 
 
+# Legacy Ghostwriter JWTs (header.payload.signature) — still issued by the
+# login mutation and accepted by older Ghostwriter versions.
 _JWT_RE = re.compile(r"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$")
 
+# Ghostwriter 7.x API tokens: gwat_ (user) / gwst_ (service), a 16-char hex
+# identifier, then a urlsafe-base64 secret which may itself contain _ and -.
+_GW_TOKEN_RE = re.compile(r"^gw[as]t_[0-9a-f]{16}_[A-Za-z0-9_-]{20,}$")
 
-def validate_jwt_format(token: str) -> tuple[bool, str, int | None]:
-    """Return (is_valid, error_message, exp). Checks structure only — not signature.
-    exp is the Unix timestamp from the payload, or None if absent."""
+
+def validate_token_format(token: str) -> tuple[bool, str]:
+    """Cheap client-side sanity check for a pasted Ghostwriter token.
+
+    Accepts 7.x API tokens (gwat_/gwst_) and legacy JWTs. This only filters
+    obvious garbage — the token is authoritatively validated against the
+    Ghostwriter server afterwards."""
     token = token.strip()
     if not token:
-        return False, "Token cannot be empty.", None
-    if not _JWT_RE.match(token):
-        return False, "Token does not appear to be a valid JWT (expected header.payload.signature).", None
-
-    parts = token.split(".")
-
-    try:
-        header_b64 = parts[0] + "=" * (-len(parts[0]) % 4)
-        header = json.loads(base64.urlsafe_b64decode(header_b64))
-        if header.get("typ", "").upper() != "JWT":
-            return False, "Token header does not indicate a JWT type.", None
-    except Exception:
-        return False, "Token header could not be decoded.", None
-
-    exp = None
-    try:
-        payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
-        exp = payload.get("exp")
-        if exp is not None and time.time() > exp:
-            return False, "Token has already expired.", None
-    except Exception:
-        pass  # exp stays None — payload exp is optional
-
-    return True, "", exp
+        return False, "Token cannot be empty."
+    if _GW_TOKEN_RE.match(token) or _JWT_RE.match(token):
+        return True, ""
+    return False, (
+        "Token does not look like a Ghostwriter API token "
+        "(expected gwat_... or a JWT)."
+    )
 
 
 def require_token(f):
-    """Redirect to onboarding if no token in session or the JWT exp has passed.
+    """Redirect to onboarding if no token in session or the token expiry has passed.
     API routes (paths containing /api/) receive a JSON 401 instead of a redirect."""
     @wraps(f)
     def decorated(*args, **kwargs):

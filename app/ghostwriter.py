@@ -1,5 +1,7 @@
 """Ghostwriter GraphQL API client."""
 import base64
+from datetime import datetime, timezone
+
 import requests
 
 _GRAPHQL_PATH = "/v1/graphql"
@@ -75,6 +77,33 @@ class GhostwriterError(Exception):
     pass
 
 
+def parse_expires(value) -> int | None:
+    """Normalize Ghostwriter's `expires` field to a Unix timestamp.
+
+    Ghostwriter reports token expiry in different shapes depending on the
+    auth path: a Unix int (login mutation), a stringified datetime like
+    "2027-01-01 00:00:00+00:00" or the literal "Never" (API-token whoami),
+    or an ISO-8601 string (JWT whoami). None means no known expiry."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    text = str(value).strip()
+    if not text or text.lower() == "never":
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        pass
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return int(dt.timestamp())
+
+
 class GhostwriterClient:
     def __init__(
         self,
@@ -104,6 +133,11 @@ class GhostwriterClient:
                 self._url, json=payload, headers=self._headers, timeout=30,
                 verify=self._verify_ssl,
             )
+            if resp.status_code == 401:
+                raise GhostwriterError(
+                    "Ghostwriter rejected the token. It may be expired, revoked, "
+                    "or in the pre-7.0 JWT format — generate a new API token."
+                )
             resp.raise_for_status()
         except requests.RequestException as exc:
             raise GhostwriterError(f"Request failed: {exc}") from exc

@@ -1,7 +1,7 @@
 from flask import current_app, flash, redirect, render_template, request, session, url_for
 
-from ..auth import clear_token, validate_jwt_format
-from ..ghostwriter import GhostwriterClient, GhostwriterError
+from ..auth import clear_token, validate_token_format
+from ..ghostwriter import GhostwriterClient, GhostwriterError, parse_expires
 from . import bp
 
 
@@ -53,13 +53,31 @@ def index():
                 except GhostwriterError as exc:
                     error = str(exc)
         else:
-            # Fallback: paste a raw JWT
+            # Paste an API token (gwat_... since Ghostwriter 7.0, or a JWT).
+            # The token is opaque, so expiry must come from the server: whoami
+            # both proves the token works and reports when it expires.
             mode = "token"
-            valid, error, exp = validate_jwt_format(token)
-            if valid:
-                _store_token(token, exp)
-                flash("Connected to Ghostwriter successfully.", "success")
-                return redirect(url_for("dashboard.index"))
+            token = token.strip()
+            valid, error = validate_token_format(token)
+            if valid and not gw_url:
+                error = "GHOSTWRITER_URL is not configured on this server."
+            elif valid:
+                try:
+                    client = GhostwriterClient(
+                        base_url=gw_url,
+                        token=token,
+                        verify_ssl=verify_ssl,
+                        cf_client_id=cf_id,
+                        cf_client_secret=cf_secret,
+                    )
+                    info = client.whoami()
+                    _store_token(token, parse_expires(info.get("expires")))
+                    username = info.get("username", "")
+                    flash(f"Connected to Ghostwriter as {username}." if username
+                          else "Connected to Ghostwriter successfully.", "success")
+                    return redirect(url_for("dashboard.index"))
+                except GhostwriterError as exc:
+                    error = str(exc)
 
     gw_url = current_app.config.get("GHOSTWRITER_URL", "").rstrip("/")
     token_create_url = f"{gw_url}/api/token/create" if gw_url else None

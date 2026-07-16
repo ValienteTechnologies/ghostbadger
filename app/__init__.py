@@ -9,7 +9,7 @@ from .extensions import csrf
 
 
 class _JwtAwareSessionInterface(SecureCookieSessionInterface):
-    """Set the session cookie to expire at the JWT exp, falling back to the app default."""
+    """Set the session cookie to expire when the stored token expires, falling back to the app default."""
 
     def get_expiration_time(self, app, session):
         exp = session.get("gw_token_exp")

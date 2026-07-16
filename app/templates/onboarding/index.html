@@ -64,13 +64,13 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
       <div class="field {% if error and mode == 'token' %}field--error{% endif %}">
-        <label class="field__label" for="token">Ghostwriter JWT Token</label>
+        <label class="field__label" for="token">Ghostwriter API Token</label>
         <textarea
           id="token"
           name="token"
           class="field__textarea"
           rows="4"
-          placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          placeholder="gwat_..."
           autocomplete="off"
           spellcheck="false"
           aria-describedby="{% if error and mode == 'token' %}token-error{% endif %} token-hint"
@@ -89,7 +89,7 @@
 
     <p class="onboarding__toggle">
       <a href="#" id="toggle-link">
-        {% if mode == 'token' %}Sign in with username &amp; password instead{% else %}Paste a JWT token instead{% endif %}
+        {% if mode == 'token' %}Sign in with username &amp; password instead{% else %}Paste an API token instead{% endif %}
       </a>
     </p>
 
