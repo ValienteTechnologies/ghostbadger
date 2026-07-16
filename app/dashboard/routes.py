@@ -59,7 +59,7 @@ def index():
     if not selected and templates:
         selected = templates[0].name
         session["selected_template"] = selected
-    vw_url = current_app.config.get("VAULTWARDEN_URL", "").rstrip("/")
+    vw_url = current_app.config.get("VAULTWARDEN_PUBLIC_URL", "").rstrip("/")
     return render_template(
         "dashboard/index.html",
         projects=projects,

@@ -14,6 +14,11 @@ class Config:
     APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/")
 
     GHOSTWRITER_URL          = os.environ.get("GHOSTWRITER_URL", "")
+    # Browser-reachable URLs for links shown in the UI. Behind Docker the
+    # *_URL values are internal hostnames the user's browser can't resolve;
+    # set these to the public instances. Fall back to the internal URL.
+    GHOSTWRITER_PUBLIC_URL   = os.environ.get("GHOSTWRITER_PUBLIC_URL", "") or os.environ.get("GHOSTWRITER_URL", "")
+    VAULTWARDEN_PUBLIC_URL   = os.environ.get("VAULTWARDEN_PUBLIC_URL", "") or os.environ.get("VAULTWARDEN_URL", "")
     GHOSTWRITER_VERIFY_SSL   = os.environ.get("GHOSTWRITER_VERIFY_SSL", "true").lower() not in ("false", "0", "no")
     GHOSTWRITER_CF_CLIENT_ID     = os.environ.get("GHOSTWRITER_CF_CLIENT_ID", "")
     GHOSTWRITER_CF_CLIENT_SECRET = os.environ.get("GHOSTWRITER_CF_CLIENT_SECRET", "")

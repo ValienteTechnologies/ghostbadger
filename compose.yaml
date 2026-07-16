@@ -10,6 +10,10 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - GHOSTWRITER_URL=${GHOSTWRITER_URL}
       - VAULTWARDEN_URL=${VAULTWARDEN_URL}
+      # Optional: browser-reachable URLs for links in the UI, when the URLs
+      # above are internal Docker hostnames. Default to the URLs above.
+      # - GHOSTWRITER_PUBLIC_URL=${GHOSTWRITER_PUBLIC_URL}
+      # - VAULTWARDEN_PUBLIC_URL=${VAULTWARDEN_PUBLIC_URL}
       - VAULTWARDEN_ORG_ID=${VAULTWARDEN_ORG_ID}
       - VAULTWARDEN_COLLECTION_ID=${VAULTWARDEN_COLLECTION_ID}
       # Optional: disable SSL verification for self-signed Ghostwriter certs

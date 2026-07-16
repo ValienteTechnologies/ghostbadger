@@ -69,6 +69,12 @@ def test_token_without_gw_url_configured(client, app):
     assert b"GHOSTWRITER_URL is not configured" in resp.data
 
 
+def test_token_create_link_uses_public_url(client, app):
+    app.config["GHOSTWRITER_PUBLIC_URL"] = "https://gw.public.example"
+    resp = client.get("/")
+    assert b"https://gw.public.example/api/token/create" in resp.data
+
+
 def test_dashboard_requires_token(client):
     resp = client.get("/dashboard/")
     assert resp.status_code == 302

@@ -79,8 +79,8 @@ def index():
                 except GhostwriterError as exc:
                     error = str(exc)
 
-    gw_url = current_app.config.get("GHOSTWRITER_URL", "").rstrip("/")
-    token_create_url = f"{gw_url}/api/token/create" if gw_url else None
+    gw_public_url = current_app.config.get("GHOSTWRITER_PUBLIC_URL", "").rstrip("/")
+    token_create_url = f"{gw_public_url}/api/token/create" if gw_public_url else None
     return render_template("onboarding/index.html", error=error, mode=mode, token_create_url=token_create_url)
 
 
